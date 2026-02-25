@@ -1,2 +1,2 @@
-# 2D-Platform-Game-in-JAVA
+# 2D-Platform-Game-in-Python
 
