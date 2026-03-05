@@ -12,6 +12,7 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
         self.fps = 60
+        self.ground_level = self.screen_height - 80
 
         self.player = Player(100,100)
 
@@ -25,10 +26,14 @@ class Game:
 
     def update(self):
         self.player.handle_input()
-        self.player.update(self.screen_height)
+        self.player.update(self.ground_level)
 
     def render(self):
-        self.screen.fill((0, 0, 0))  # Tela preta
+        self.screen.fill((0, 0, 0))
+
+        pygame.draw.line(self.screen, (255, 255, 255), (0, self.ground_level), 
+                        (self.screen_width, self.ground_level), 2)
+        
         self.player.render(self.screen)
         pygame.display.flip()
 
