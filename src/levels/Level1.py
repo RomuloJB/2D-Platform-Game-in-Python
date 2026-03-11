@@ -3,7 +3,7 @@ import random
 import pygame
 
 from src.utilz.Constants import *
-from platform import Platform
+from src.objects.Platform import Platform
 from src.entities.Enemy import Enemy
 from src.entities.Coin import Coin
 
