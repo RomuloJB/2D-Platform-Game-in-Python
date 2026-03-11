@@ -6,7 +6,7 @@ import pygame
 from src.utilz.Constants import *
 from src.objects.Particle import Particle
 from src.entities.Bullet import Bullet
-from src.utilz import lerp
+from src.utilz.Utilz import lerp
 
 
 class Player:

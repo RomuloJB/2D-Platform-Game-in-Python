@@ -3,7 +3,7 @@ import random
 import pygame
 
 from src.utilz.Constants import *
-from src.utilz import draw_gradient_rect
+from src.utilz.Utilz import draw_gradient_rect
 
 
 def draw_background(surf, cam_x, cam_y):

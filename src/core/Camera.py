@@ -1,5 +1,5 @@
 from src.utilz.Constants import *
-from src.utilz import lerp, clamp
+from src.utilz.Utilz import lerp, clamp
 
 
 class Camera:
