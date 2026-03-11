@@ -2,10 +2,10 @@ import random
 
 import pygame
 
-from constants import *
+from src.utilz.Constants import *
 from platform import Platform
-from enemy import Enemy
-from coin import Coin
+from src.entities.Enemy import Enemy
+from src.entities.Coin import Coin
 
 
 class WorldGenerator:
