@@ -14,16 +14,13 @@ class Player:
         self.jump_strength = -12
         self.on_ground = False
 
-    def handle_input(self):
-        keys = pygame.key.get_pressed()
-        
+    def apply_input(self, input_map: dict):
         self.vel_x = 0
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+        if input_map["left"]:
             self.vel_x = -self.speed
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+        if input_map["right"]:
             self.vel_x = self.speed
-        
-        if (keys[pygame.K_SPACE] or keys[pygame.K_UP] or keys[pygame.K_w]) and self.on_ground:
+        if input_map["jump"] and self.on_ground:
             self.vel_y = self.jump_strength
 
     def update(self, ground_level):
@@ -39,6 +36,3 @@ class Player:
             self.on_ground = True
         else:
             self.on_ground = False
-
-    def render(self, screen):
-        pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
