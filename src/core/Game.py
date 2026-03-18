@@ -1,6 +1,8 @@
 import pygame
 import sys
 from src.entities.Player import Player
+from src.input.Inputs import Inputs
+from src.ui.Ui import Ui
 
 class Game:
     def __init__(self):
@@ -15,6 +17,8 @@ class Game:
         self.ground_level = self.screen_height - 80
 
         self.player = Player(100,100)
+        self.inputs = Inputs(self.player)
+        self.ui = Ui()
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -25,7 +29,8 @@ class Game:
                     self.running = False
 
     def update(self):
-        self.player.handle_input()
+        input_map = self.inputs.handle_input()
+        self.player.apply_input(input_map)
         self.player.update(self.ground_level)
 
     def render(self):
@@ -34,7 +39,7 @@ class Game:
         pygame.draw.line(self.screen, (255, 255, 255), (0, self.ground_level), 
                         (self.screen_width, self.ground_level), 2)
         
-        self.player.render(self.screen)
+        self.ui.render(self.screen)
         pygame.display.flip()
 
     def run(self):
