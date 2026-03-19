@@ -6,6 +6,7 @@ import pygame
 from src.utilz.Constants import *
 from src.objects.Particle import Particle
 from src.entities.Bullet import Bullet
+from .Weapons import Pistol, Shotgun, MachineGun
 from src.utilz.Utilz import lerp
 
 
@@ -31,22 +32,32 @@ class Player:
         self.land_squash = 0
         self.shoot_cooldown = 0
         self.shoot_anim = 0
+        self.weapons = [Pistol(), Shotgun(), MachineGun()]
+        self.weapon_index = 0
 
+    @property
+    def current_weapon(self):
+        return self.weapons[self.weapon_index]
+
+    def switch_weapon(self, index):
+        if 0 <= index < len(self.weapons):
+            self.weapon_index = index
+            
     def shoot(self, mouse_screen_x, mouse_screen_y, cam_x, cam_y, bullets):
         if self.shoot_cooldown > 0 or not self.alive:
             return
+
+        weapon = self.weapons[self.weapon_index]
         ox = self.rect.centerx
         oy = self.rect.centery - 4
-        mx = mouse_screen_x + cam_x
-        my = mouse_screen_y + cam_y
-        dx = mx - ox
-        dy = my - oy
-        dist = math.hypot(dx, dy) or 1
-        vx = dx / dist * BULLET_SPEED
-        vy = dy / dist * BULLET_SPEED
-        bullets.append(Bullet(ox, oy, vx, vy))
-        self.shoot_cooldown = BULLET_COOLDOWN
+        dx = (mouse_screen_x + cam_x) - ox
+        dy = (mouse_screen_y + cam_y) - oy
+
+        bullets.extend(weapon.create_bullets(ox, oy, dx, dy))  # ← pellets da escopeta entram aqui
+
+        self.shoot_cooldown = weapon.cooldown   # ← cooldown vem da arma, não da constante
         self.shoot_anim = 6
+
         if dx > 0:
             self.facing = 1
         elif dx < 0:
