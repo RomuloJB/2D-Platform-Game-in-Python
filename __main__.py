@@ -1,68 +1,68 @@
 import sys
-
 import pygame
 
-from src.utilz.Constants import *
+from src.utilz.Constants import SCREEN_W, SCREEN_H, FPS, TILE_SIZE
+from src.gamestates.MenuState import MenuState
+
+# ── Imports do jogo (copiados do __main__.py original) ────────────
 from src.levels.Level1 import WorldGenerator
 from src.entities.Player import Player
 from src.core.Camera import Camera
 from src.core.Hud import (
     draw_background, draw_hud, draw_controls,
-    draw_crosshair, draw_game_over
+    draw_crosshair, draw_game_over,
 )
 
 
+# ─────────────────────────────────────────────────────────────────
+#  Helpers do jogo (iguais ao original)
+# ─────────────────────────────────────────────────────────────────
 def make_game():
-    world = WorldGenerator()
+    world  = WorldGenerator()
     player = Player(80, SCREEN_H - TILE_SIZE - 100)
     camera = Camera()
     camera.x = 0
     particles = []
-    bullets = []
-    tick = 0
+    bullets   = []
+    tick      = 0
     return world, player, camera, particles, bullets, tick
 
 
-def main():
-    pygame.init()
-    screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
-    pygame.display.set_caption("Plataforma 2D - MVP")
-    clock = pygame.time.Clock()
-
-    try:
-        font_big = pygame.font.SysFont("arial", 64, bold=True)
-        font     = pygame.font.SysFont("arial", 24, bold=True)
-        font_sm  = pygame.font.SysFont("arial", 16)
-    except Exception:
-        font_big = pygame.font.Font(None, 64)
-        font     = pygame.font.Font(None, 28)
-        font_sm  = pygame.font.Font(None, 20)
+def run_game(screen: pygame.Surface, clock: pygame.time.Clock, fonts: dict) -> str:
+    """
+    Executa o loop de gameplay.
+    Retorna:
+        "menu"  → jogador pressionou ESC (volta ao menu)
+        "quit"  → jogador fechou a janela
+    """
+    font_big = fonts["big"]
+    font     = fonts["normal"]
+    font_sm  = fonts["small"]
 
     world, player, camera, particles, bullets, tick = make_game()
     damage_flash = 0
-    prev_health = player.health
+    prev_health  = player.health
     pygame.mouse.set_visible(False)
 
-    running = True
-    while running:
+    while True:
         clock.tick(FPS)
 
         # ── Eventos ──
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                return "quit"
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    running = False
+                    pygame.mouse.set_visible(True)
+                    return "menu"
                 if event.key == pygame.K_r:
                     world, player, camera, particles, bullets, tick = make_game()
                     damage_flash = 0
-                    prev_health = player.health
+                    prev_health  = player.health
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mx, my = event.pos
                 player.shoot(mx, my, int(camera.x), int(camera.y), bullets)
 
-        # Tiro contínuo segurando o botão
         if pygame.mouse.get_pressed()[0]:
             mx, my = pygame.mouse.get_pos()
             player.shoot(mx, my, int(camera.x), int(camera.y), bullets)
@@ -73,8 +73,8 @@ def main():
         # ── Update ──
         if player.alive:
             player.handle_input(keys)
-
             world.update_chunks(player.rect.x)
+
             nearby_plats   = world.get_nearby_platforms(camera.x)
             nearby_enemies = world.get_nearby_enemies(camera.x)
             nearby_coins   = world.get_nearby_coins(camera.x)
@@ -95,7 +95,6 @@ def main():
 
             for e in nearby_enemies:
                 e.update(nearby_plats)
-
             for c in nearby_coins:
                 c.update()
 
@@ -108,7 +107,6 @@ def main():
             if player.rect.top > SCREEN_H + 200:
                 player.alive = False
 
-        # ── Partículas ──
         for p in list(particles):
             p.update()
         particles = [p for p in particles if p.life > 0]
@@ -116,7 +114,7 @@ def main():
         if damage_flash > 0:
             damage_flash -= 1
 
-        # ── Desenhar ──
+        # ── Render ──
         cam_x = int(camera.x)
         cam_y = int(camera.y)
 
@@ -124,13 +122,10 @@ def main():
 
         for p in world.get_nearby_platforms(cam_x):
             p.draw(screen, cam_x, cam_y)
-
         for c in world.get_nearby_coins(cam_x):
             c.draw(screen, cam_x, cam_y)
-
         for e in world.get_nearby_enemies(cam_x):
             e.draw(screen, cam_x, cam_y)
-
         for b in bullets:
             b.draw(screen, cam_x, cam_y)
 
@@ -141,8 +136,7 @@ def main():
 
         if damage_flash > 0:
             flash_surf = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
-            alpha = int(80 * damage_flash / 20)
-            flash_surf.fill((255, 50, 50, alpha))
+            flash_surf.fill((255, 50, 50, int(80 * damage_flash / 20)))
             screen.blit(flash_surf, (0, 0))
 
         distance = max(0, player.rect.x - 80) / 60
@@ -156,6 +150,58 @@ def main():
             draw_game_over(screen, font_big, font)
 
         pygame.display.flip()
+
+
+# ─────────────────────────────────────────────────────────────────
+#  Main
+# ─────────────────────────────────────────────────────────────────
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
+    pygame.display.set_caption("2D Platform Game")
+    clock = pygame.time.Clock()
+
+    try:
+        fonts = {
+            "big":    pygame.font.SysFont("arial", 64, bold=True),
+            "normal": pygame.font.SysFont("arial", 24, bold=True),
+            "small":  pygame.font.SysFont("arial", 16),
+        }
+    except Exception:
+        fonts = {
+            "big":    pygame.font.Font(None, 64),
+            "normal": pygame.font.Font(None, 28),
+            "small":  pygame.font.Font(None, 20),
+        }
+
+    # ── Estado inicial: MENU ──────────────────────────────────────
+    state = "menu"
+    menu  = MenuState(screen)
+
+    while state != "quit":
+        clock.tick(FPS)
+
+        if state == "menu":
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    state = "quit"
+                    break
+                action = menu.handle_event(event)
+                if action == "play":
+                    state = "playing"
+                elif action == "quit":
+                    state = "quit"
+
+            if state == "menu":
+                menu.update()
+                menu.draw()
+                pygame.display.flip()
+
+        elif state == "playing":
+            result = run_game(screen, clock, fonts)
+            # Ao voltar do jogo, reinicia o menu e exibe ele novamente
+            menu   = MenuState(screen)
+            state  = result   # "menu" ou "quit"
 
     pygame.quit()
     sys.exit()
