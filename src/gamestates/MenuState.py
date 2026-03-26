@@ -99,7 +99,8 @@ class MenuState:
         elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
             return self._confirm()
         elif event.key == pygame.K_ESCAPE:
-            return "quit"
+            # ESC no menu apenas move o cursor para "SAIR"
+            self._sel = self.OPTION_QUIT
 
         return None
 
