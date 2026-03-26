@@ -23,7 +23,8 @@ class Player:
         self.jump_hold = 0
         self.alive = True
         self.invincible = 0
-        self.health = 3
+        self.max_health = 3
+        self.health = self.max_health
         self.anim = 0
         self.facing = 1
         self.score = 0
@@ -31,6 +32,36 @@ class Player:
         self.land_squash = 0
         self.shoot_cooldown = 0
         self.shoot_anim = 0
+
+        # ── persistem entre mortes ─────────────────────────────
+        self.coins = 0
+        self.ammo = 999          # munição infinita por padrão (pode limitar depois)
+        self.speed_upgraded = False
+        self.damage_upgraded = False
+
+    # ── conveniência para speed ────────────────────────────────
+    @property
+    def move_speed(self):
+        return PLAYER_SPEED * (1.2 if self.speed_upgraded else 1.0)
+
+    # ── reset ao morrer (mantém coins, armas, upgrades) ────────
+    def soft_reset(self, x, y):
+        self.rect.topleft = (x, y)
+        self.vx = 0.0
+        self.vy = 0.0
+        self.on_ground = False
+        self.coyote = 0
+        self.jump_buf = 0
+        self.jump_hold = 0
+        self.alive = True
+        self.invincible = 0
+        self.health = self.max_health   # reseta HP mas mantém max
+        self.anim = 0
+        self.was_on_ground = False
+        self.land_squash = 0
+        self.shoot_cooldown = 0
+        self.shoot_anim = 0
+        # coins, ammo, upgrades NÃO resetam
 
     def shoot(self, mouse_screen_x, mouse_screen_y, cam_x, cam_y, bullets):
         if self.shoot_cooldown > 0 or not self.alive:
@@ -42,9 +73,11 @@ class Player:
         dx = mx - ox
         dy = my - oy
         dist = math.hypot(dx, dy) or 1
-        vx = dx / dist * BULLET_SPEED
-        vy = dy / dist * BULLET_SPEED
-        bullets.append(Bullet(ox, oy, vx, vy))
+        speed = BULLET_SPEED
+        vx = dx / dist * speed
+        vy = dy / dist * speed
+        dmg = 2 if self.damage_upgraded else 1
+        bullets.append(Bullet(ox, oy, vx, vy, damage=dmg))
         self.shoot_cooldown = BULLET_COOLDOWN
         self.shoot_anim = 6
         if dx > 0:
@@ -53,11 +86,12 @@ class Player:
             self.facing = -1
 
     def handle_input(self, keys):
+        spd = self.move_speed
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.vx = lerp(self.vx, -PLAYER_SPEED, PLAYER_ACCEL / PLAYER_SPEED)
+            self.vx = lerp(self.vx, -spd, PLAYER_ACCEL / spd)
             self.facing = -1
         elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.vx = lerp(self.vx, PLAYER_SPEED, PLAYER_ACCEL / PLAYER_SPEED)
+            self.vx = lerp(self.vx, spd, PLAYER_ACCEL / spd)
             self.facing = 1
         else:
             self.vx *= PLAYER_FRICTION
@@ -151,6 +185,7 @@ class Player:
                     enemy.alive = False
                     self.vy = JUMP_POWER * 0.7
                     self.score += 100
+                    self.coins += 5
                     for _ in range(12):
                         particles.append(Particle(
                             enemy.rect.centerx, enemy.rect.centery,
@@ -166,6 +201,7 @@ class Player:
                 if self.rect.colliderect(cr):
                     coin.collected = True
                     self.score += 10
+                    self.coins += 1
                     for _ in range(8):
                         particles.append(Particle(
                             coin.x, coin.base_y,

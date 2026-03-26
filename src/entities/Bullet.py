@@ -11,11 +11,12 @@ class Bullet:
     W = 10
     H = 7
 
-    def __init__(self, x, y, vx, vy):
+    def __init__(self, x, y, vx, vy, damage=1):
         self.x = float(x)
         self.y = float(y)
         self.vx = vx
         self.vy = vy
+        self.damage = damage
         self.alive = True
         self.scored = False
         self.trail = []
@@ -44,9 +45,11 @@ class Bullet:
 
         for enemy in enemies:
             if enemy.alive and bullet_rect.colliderect(enemy.rect):
-                enemy.alive = False
+                killed = enemy.take_hit() if hasattr(enemy, 'take_hit') else True
+                if killed:
+                    enemy.alive = False
                 self._impact(particles, hit_enemy=True)
-                self.scored = True
+                self.scored = killed
                 return
 
     def _impact(self, particles, hit_enemy):
@@ -81,8 +84,9 @@ class Bullet:
         sx = int(self.x - cam_x)
         sy = int(self.y - cam_y)
         if -20 < sx < SCREEN_W + 20 and -20 < sy < SCREEN_H + 20:
+            col = C_BULLET_GL if self.damage > 1 else C_BULLET
             bsurf = pygame.Surface((self.W + 2, self.H + 2), pygame.SRCALPHA)
-            pygame.draw.rect(bsurf, C_BULLET,    (0, 0, self.W, self.H), border_radius=3)
+            pygame.draw.rect(bsurf, col, (0, 0, self.W, self.H), border_radius=3)
             pygame.draw.rect(bsurf, C_BULLET_GL, (2, 1, self.W - 4, self.H - 2), border_radius=2)
             rotated = pygame.transform.rotate(bsurf, angle)
             rr = rotated.get_rect(center=(sx, sy))
