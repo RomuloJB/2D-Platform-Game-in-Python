@@ -4,10 +4,10 @@ from src.entities.Bullet import Bullet
 
 
 class Weapon:
-    def __init__(self, name, damage, speed, cooldown, max_range, spread=0, pellets=1):
+    def __init__(self, name, damage, bullet_speed, cooldown, max_range, spread=0,pellets=1):
         self.name      = name
         self.damage    = damage
-        self.speed     = speed
+        self.bullet_speed     = bullet_speed
         self.cooldown  = cooldown    # frames de cooldown (igual BULLET_COOLDOWN atual)
         self.max_range = max_range
         self.spread    = spread      # graus de dispersão
@@ -15,8 +15,8 @@ class Weapon:
 
     def create_bullets(self, ox, oy, dx, dy):
         dist = math.hypot(dx, dy) or 1
-        base_vx = dx / dist * self.speed
-        base_vy = dy / dist * self.speed
+        base_vx = dx / dist * self.bullet_speed
+        base_vy = dy / dist * self.bullet_speed
         bullets = []
         for _ in range(self.pellets):
             angle = math.radians(random.uniform(-self.spread, self.spread))
@@ -31,6 +31,6 @@ class Weapon:
 
 
 # --- Instâncias prontas para usar ---
-PISTOL      = Weapon("pistol",     damage=34, speed=12, cooldown=18, max_range=400, spread=2,  pellets=1)
-SHOTGUN     = Weapon("shotgun",    damage=20, speed=10, cooldown=40, max_range=180, spread=25, pellets=6)
-MACHINE_GUN = Weapon("machinegun", damage=50, speed=16, cooldown=6,  max_range=550, spread=5,  pellets=1)
+PISTOL      = Weapon("pistol",     damage=34, bullet_speed=12, cooldown=18, max_range=400, spread=2,  pellets=1)
+SHOTGUN     = Weapon("shotgun",    damage=20, bullet_speed=10, cooldown=40, max_range=180, spread=25, pellets=6)
+MACHINE_GUN = Weapon("machinegun", damage=50, bullet_speed=16, cooldown=6,  max_range=550, spread=5,  pellets=1)

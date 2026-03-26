@@ -271,13 +271,16 @@ class MenuState:
 
         lines = [
             ("DESENVOLVIDO POR",       self.C_DIM),
-            ("Seu Nome Aqui",          self.C_WHITE),
+            ("Ariel Machado",          self.C_WHITE),
+            ("Rafael Scarpelli",          self.C_WHITE),
+            ("Rômulo Jordão",          self.C_WHITE),
+
             ("",                       None),
             ("ENGINE",                 self.C_DIM),
             ("Python 3  +  Pygame",    self.C_CYAN),
             ("",                       None),
             ("ARTE & DESIGN",          self.C_DIM),
-            ("Você mesmo  :)",         self.C_GREEN),
+            ("Nós mesmos",         self.C_GREEN),
             ("",                       None),
             ("VERSÃO  1.0.0",          self.C_DIM),
         ]

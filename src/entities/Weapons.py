@@ -9,9 +9,8 @@ class Pistol(Weapon):
             name="Pistol",
             damage=34,          # 34 * 3 ≈ 100 hp → mata
             bullet_speed=10,
-            fire_rate=400,      # ms
+            cooldown=40,      # ms
             max_range=400,
-            bullets_to_kill=3,
             spread=2,           # graus de dispersão leve
         )
 
@@ -28,9 +27,8 @@ class Shotgun(Weapon):
             name="Shotgun",
             damage=20,          # cada pellet faz 20
             bullet_speed=9,
-            fire_rate=900,
+            cooldown=100,
             max_range=180,      # range BEM curto
-            bullets_to_kill=1,  # se todos os pellets acertarem = 120 dmg
             spread=25,
         )
         self.bullets_per_shot = 6
@@ -53,9 +51,8 @@ class MachineGun(Weapon):
             name="MachineGun",
             damage=50,          # 50 * 2 = 100 hp → mata
             bullet_speed=14,
-            fire_rate=120,      # rápido
+            cooldown=15,      # rápido
             max_range=550,
-            bullets_to_kill=2,
             spread=5,
         )
 

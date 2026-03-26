@@ -11,7 +11,14 @@ class Bullet:
     W = 10
     H = 7
 
-    def __init__(self, x, y, vx, vy):
+    def __init__(self, x, y, vx, vy, damage=10, max_range=500, weapon_type="pistol"):
+        self.x = float(x)
+        self.y = float(y)
+        self.vx = vx
+        self.vy = vy
+        self.damage = damage
+        self.max_range = max_range
+        self.weapon_type = weapon_type
         self.x = float(x)
         self.y = float(y)
         self.vx = vx
