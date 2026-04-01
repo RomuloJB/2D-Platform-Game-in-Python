@@ -33,9 +33,10 @@ class Player:
         self.land_squash = 0
         self.cooldown = 0
         self.shoot_anim = 0
-        self.weapons = [Pistol(), Shotgun(), MachineGun()]
+        self.weapons = [Pistol()]
         self.weapon_index = 0
         # ── persistem entre mortes ─────────────────────────────
+        self.unlocked_weapons = {"pistol"}
         self.coins = 0
         self.ammo = 999          # munição infinita por padrão (pode limitar depois)
         self.speed_upgraded = False
@@ -53,6 +54,20 @@ class Player:
     @property
     def move_speed(self):
         return PLAYER_SPEED * (1.2 if self.speed_upgraded else 1.0)
+    
+    def unlock_weapon(self, weapon_id: str, equip: bool = True) -> bool:
+        if weapon_id in self.unlocked_weapons:
+            return False
+        if weapon_id == "shotgun":
+            self.weapons.append(Shotgun())
+        elif weapon_id == "machinegun":
+            self.weapons.append(MachineGun())
+        else:
+            return False
+        self.unlocked_weapons.add(weapon_id)
+        if equip:
+            self.weapon_index = len(self.weapons) - 1
+        return True
 
     # ── reset ao morrer (mantém coins, armas, upgrades) ────────
     def soft_reset(self, x, y):
@@ -69,12 +84,11 @@ class Player:
         self.anim = 0
         self.was_on_ground = False
         self.land_squash = 0
-        self.shoot_cooldown = 0
         self.shoot_anim = 0
         # coins, ammo, upgrades NÃO resetam
 
     def shoot(self, mouse_screen_x, mouse_screen_y, cam_x, cam_y, bullets):
-        if self.shoot_cooldown > 0 or not self.alive:
+        if self.cooldown > 0 or not self.alive:
             return
 
         weapon = self.weapons[self.weapon_index]
@@ -89,9 +103,8 @@ class Player:
         vx = dx / dist * speed
         vy = dy / dist * speed
         dmg = 2 if self.damage_upgraded else 1
-        bullets.append(Bullet(ox, oy, vx, vy, damage=dmg))
-        self.shoot_cooldown = weapon.cooldown   # ← cooldown vem da arma, não da constante
-        bullets.extend(weapon.create_bullets(ox, oy, dx, dy))  # ← pellets da escopeta entram aqui
+        self.cooldown = weapon.cooldown   
+        bullets.extend(weapon.create_bullets(ox, oy, dx, dy))  # pellets da escopeta
         self.shoot_anim = 6
 
         if dx > 0:
@@ -141,7 +154,7 @@ class Player:
 
         self.was_on_ground = self.on_ground
         self.invincible = max(0, self.invincible - 1)
-        self.shoot_cooldown = max(0, self.shoot_cooldown - 1)
+        self.cooldown = max(0, self.cooldown - 1)
         self.shoot_anim = max(0, self.shoot_anim - 1)
         if self.jump_buf > 0:
             self.jump_buf -= 1

@@ -9,9 +9,9 @@ class Pistol(Weapon):
             name="Pistol",
             damage=34,          # 34 * 3 ≈ 100 hp → mata
             bullet_speed=10,
-            cooldown=40,      # ms
+            cooldown=30,      # ms
             max_range=400,
-            spread=2,           # graus de dispersão leve
+            spread=1,           # graus de dispersão leve
         )
 
     def _create_bullets(self, x, y, direction):
