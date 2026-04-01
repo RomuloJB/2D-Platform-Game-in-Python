@@ -134,10 +134,7 @@ def main():
                 if left_shop:
                     gs.leave_checkpoint()
                     shop = None
-                    if gs.playing:
-                        world, camera, particles, bullets, tick = reset_session(gs)
-                        player.soft_reset(80, SCREEN_H - TILE_SIZE - 100)
-                        level_banner = 50
+                    
 
             # tiro por clique único
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
