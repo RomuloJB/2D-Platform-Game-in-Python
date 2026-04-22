@@ -11,7 +11,7 @@ class Bullet:
     W = 10
     H = 7
 
-    def __init__(self, x, y, vx, vy, damage=1):
+    def __init__(self, x, y, vx, vy, damage=1, max_range=500, weapon_type="pistol"):
         self.x = float(x)
         self.y = float(y)
         self.vx = vx
@@ -20,6 +20,9 @@ class Bullet:
         self.alive = True
         self.scored = False
         self.trail = []
+        self.damage = damage
+        self.max_range = max_range
+        self.weapon_type = weapon_type
 
     def update(self, enemies, platforms, particles):
         if not self.alive:

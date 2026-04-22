@@ -6,6 +6,7 @@ import pygame
 from src.utilz.Constants import *
 from src.objects.Particle import Particle
 from src.entities.Bullet import Bullet
+from .Weapons import Pistol, Shotgun, MachineGun
 from src.utilz.Utilz import lerp
 
 
@@ -30,19 +31,43 @@ class Player:
         self.score = 0
         self.was_on_ground = False
         self.land_squash = 0
-        self.shoot_cooldown = 0
+        self.cooldown = 0
         self.shoot_anim = 0
-
+        self.weapons = [Pistol()]
+        self.weapon_index = 0
         # ── persistem entre mortes ─────────────────────────────
+        self.unlocked_weapons = {"pistol"}
         self.coins = 0
         self.ammo = 999          # munição infinita por padrão (pode limitar depois)
         self.speed_upgraded = False
         self.damage_upgraded = False
 
+    @property
+    def current_weapon(self):
+        return self.weapons[self.weapon_index]
+
+    def switch_weapon(self, index):
+        if 0 <= index < len(self.weapons):
+            self.weapon_index = index
+
     # ── conveniência para speed ────────────────────────────────
     @property
     def move_speed(self):
         return PLAYER_SPEED * (1.2 if self.speed_upgraded else 1.0)
+    
+    def unlock_weapon(self, weapon_id: str, equip: bool = True) -> bool:
+        if weapon_id in self.unlocked_weapons:
+            return False
+        if weapon_id == "shotgun":
+            self.weapons.append(Shotgun())
+        elif weapon_id == "machinegun":
+            self.weapons.append(MachineGun())
+        else:
+            return False
+        self.unlocked_weapons.add(weapon_id)
+        if equip:
+            self.weapon_index = len(self.weapons) - 1
+        return True
 
     # ── reset ao morrer (mantém coins, armas, upgrades) ────────
     def soft_reset(self, x, y):
@@ -59,13 +84,14 @@ class Player:
         self.anim = 0
         self.was_on_ground = False
         self.land_squash = 0
-        self.shoot_cooldown = 0
         self.shoot_anim = 0
         # coins, ammo, upgrades NÃO resetam
 
     def shoot(self, mouse_screen_x, mouse_screen_y, cam_x, cam_y, bullets):
-        if self.shoot_cooldown > 0 or not self.alive:
+        if self.cooldown > 0 or not self.alive:
             return
+
+        weapon = self.weapons[self.weapon_index]
         ox = self.rect.centerx
         oy = self.rect.centery - 4
         mx = mouse_screen_x + cam_x
@@ -77,9 +103,10 @@ class Player:
         vx = dx / dist * speed
         vy = dy / dist * speed
         dmg = 2 if self.damage_upgraded else 1
-        bullets.append(Bullet(ox, oy, vx, vy, damage=dmg))
-        self.shoot_cooldown = BULLET_COOLDOWN
+        self.cooldown = weapon.cooldown   
+        bullets.extend(weapon.create_bullets(ox, oy, dx, dy))  # pellets da escopeta
         self.shoot_anim = 6
+
         if dx > 0:
             self.facing = 1
         elif dx < 0:
@@ -127,7 +154,7 @@ class Player:
 
         self.was_on_ground = self.on_ground
         self.invincible = max(0, self.invincible - 1)
-        self.shoot_cooldown = max(0, self.shoot_cooldown - 1)
+        self.cooldown = max(0, self.cooldown - 1)
         self.shoot_anim = max(0, self.shoot_anim - 1)
         if self.jump_buf > 0:
             self.jump_buf -= 1
@@ -152,15 +179,7 @@ class Player:
                     self.rect.bottom = plat.rect.top
                     self.vy = 0
                     self.on_ground = True
-                    if not self.was_on_ground:
-                        self.land_squash = 8
-                        for _ in range(6):
-                            particles.append(Particle(
-                                self.rect.centerx + random.randint(-10, 10),
-                                self.rect.bottom,
-                                random.uniform(-2, 2), random.uniform(-1, 0.5),
-                                20, random.choice(C_PARTICLE[:2]), 3
-                            ))
+                    
                 elif self.vy < 0 and self.rect.top <= plat.rect.bottom:
                     self.rect.top = plat.rect.bottom
                     self.vy = 0

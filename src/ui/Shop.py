@@ -38,6 +38,20 @@ SHOP_ITEMS = [
         "cost":  80,
         "color": (255, 100, 140),
     },
+    {
+        "id":    "shotgun",
+        "name":  "Espingarda",
+        "desc":  "Dano alto de perto, 6 balas por disparo",
+        "cost":  100,
+        "color": (200, 80, 80),
+    },
+    {
+        "id":    "machinegun",
+        "name":  "Metralhadora",
+        "desc":  "Alta cadência, mata com 2 balas",
+        "cost":  130,
+        "color": (80, 200, 255),
+    }
 ]
 
 _N       = len(SHOP_ITEMS)
@@ -82,10 +96,17 @@ class Shop:
         return False
 
     def _buy(self, player, item):
+        iid = item["id"]
         if player.coins < item["cost"]:
             self._msg("Coins insuficientes!")
             return
-        iid = item["id"]
+        if iid in player.unlocked_weapons:
+            self._msg("Arma já desbloqueada!")
+            return
+        elif iid == "shotgun":
+            player.unlock_weapon("shotgun", equip = True)
+        elif iid == "machinegun":
+            player.unlock_weapon("machinegun", equip = True)
         if iid == "health":
             if player.health >= player.max_health:
                 self._msg("HP já está no máximo!")
