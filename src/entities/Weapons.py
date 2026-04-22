@@ -49,9 +49,9 @@ class MachineGun(Weapon):
     def __init__(self):
         super().__init__(
             name="MachineGun",
-            damage=50,          # 50 * 2 = 100 hp → mata
+            damage=50, #mata com 2 tiros
             bullet_speed=14,
-            cooldown=15,      # rápido
+            cooldown=15,
             max_range=550,
             spread=5,
         )

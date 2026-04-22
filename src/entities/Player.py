@@ -179,15 +179,7 @@ class Player:
                     self.rect.bottom = plat.rect.top
                     self.vy = 0
                     self.on_ground = True
-                    if not self.was_on_ground:
-                        self.land_squash = 8
-                        for _ in range(6):
-                            particles.append(Particle(
-                                self.rect.centerx + random.randint(-10, 10),
-                                self.rect.bottom,
-                                random.uniform(-2, 2), random.uniform(-1, 0.5),
-                                20, random.choice(C_PARTICLE[:2]), 3
-                            ))
+                    
                 elif self.vy < 0 and self.rect.top <= plat.rect.bottom:
                     self.rect.top = plat.rect.bottom
                     self.vy = 0

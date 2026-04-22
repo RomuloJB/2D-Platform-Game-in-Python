@@ -8,7 +8,7 @@ class Weapon:
         self.name      = name
         self.damage    = damage
         self.bullet_speed     = bullet_speed
-        self.cooldown  = cooldown    # frames de cooldown (igual BULLET_COOLDOWN atual)
+        self.cooldown  = cooldown    # frames de cooldown(igual BULLET_COOLDOWN atual)
         self.max_range = max_range
         self.spread    = spread      # graus de dispersão
         self.pellets   = pellets     # projéteis por disparo
@@ -29,8 +29,6 @@ class Weapon:
                                   weapon_type=self.name))
         return bullets
 
-
-# --- Instâncias prontas para usar ---
 PISTOL      = Weapon("pistol",     damage=34, bullet_speed=12, cooldown=18, max_range=400, spread=2,  pellets=1)
 SHOTGUN     = Weapon("shotgun",    damage=20, bullet_speed=10, cooldown=40, max_range=180, spread=25, pellets=6)
 MACHINE_GUN = Weapon("machinegun", damage=50, bullet_speed=16, cooldown=6,  max_range=550, spread=5,  pellets=1)
