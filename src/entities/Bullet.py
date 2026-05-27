@@ -16,6 +16,8 @@ class Bullet:
         self.y = float(y)
         self.vx = vx
         self.vy = vy
+        self.start_x = self.x
+        self.start_y = self.y
         self.damage = damage
         self.alive = True
         self.scored = False
@@ -34,6 +36,10 @@ class Bullet:
 
         self.x += self.vx
         self.y += self.vy
+
+        if math.hypot(self.x - self.start_x, self.y - self.start_y) >= self.max_range:
+            self.alive = False
+            return
 
         bullet_rect = pygame.Rect(
             int(self.x - self.W // 2),

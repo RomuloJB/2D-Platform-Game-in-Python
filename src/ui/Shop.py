@@ -40,7 +40,7 @@ SHOP_ITEMS = [
     },
     {
         "id":    "shotgun",
-        "name":  "Espingarda",
+        "name":  "Escopeta",
         "desc":  "Dano alto de perto, 6 balas por disparo",
         "cost":  100,
         "color": (200, 80, 80),
