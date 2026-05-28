@@ -33,10 +33,10 @@ class Player:
         self.land_squash = 0
         self.cooldown = 0
         self.shoot_anim = 0
-        self.weapons = [MachineGun()]
+        self.weapons = [Pistol()]
         self.weapon_index = 0
         # ── persistem entre mortes ─────────────────────────────
-        self.unlocked_weapons = {"machinegun"}
+        self.unlocked_weapons = {"pistol"}
         self.coins = 0
         self.ammo = 999          # munição infinita por padrão (pode limitar depois)
         self.speed_upgraded = False

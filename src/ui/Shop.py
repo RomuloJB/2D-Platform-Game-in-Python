@@ -1,3 +1,4 @@
+import os
 import pygame
 from src.utilz.Constants import *
 
@@ -54,12 +55,16 @@ SHOP_ITEMS = [
     }
 ]
 
-_N       = len(SHOP_ITEMS)
+WEAPON_IDS = {"shotgun", "machinegun"}
+ITEM_INDEX = {item["id"]: idx for idx, item in enumerate(SHOP_ITEMS)}
+
 _GAP     = 16
 _MARGIN  = 40
-_ITEM_W  = (SCREEN_W - _MARGIN * 2 - _GAP * (_N - 1)) // _N
 _ITEM_H  = 110
-_ITEMS_Y = 180
+_ITEMS_Y = 130
+_ROW_GAP = 18
+_SECTION_GAP = 14
+_ICON_SIZE = 75
 
 
 class Shop:
@@ -69,6 +74,7 @@ class Shop:
         self.selected        = 0
         self.message         = ""
         self.message_timer   = 0
+        self.weapon_icons    = {}
 
         try:
             self.font_title = pygame.font.SysFont("arial", 32, bold=True)
@@ -82,6 +88,26 @@ class Shop:
             self.font_desc  = pygame.font.Font(None, 18)
             self.font_coins = pygame.font.Font(None, 24)
             self.font_hint  = pygame.font.Font(None, 16)
+
+        for weapon_id in WEAPON_IDS:
+            icon = self._load_weapon_icon(weapon_id)
+            if icon is not None:
+                self.weapon_icons[weapon_id] = icon
+
+    def _load_weapon_icon(self, weapon_id: str):
+        candidates = [
+            os.path.join("src", "utilz", "img", f"{weapon_id}-icon.png"),
+            os.path.join("src", "ui", "img", f"{weapon_id}-icon.png"),
+            os.path.join("res", f"{weapon_id}_icon.png"),
+        ]
+        for path in candidates:
+            if os.path.exists(path):
+                try:
+                    icon = pygame.image.load(path).convert_alpha()
+                    return pygame.transform.scale(icon, (_ICON_SIZE, _ICON_SIZE))
+                except Exception:
+                    return None
+        return None
 
     def handle_event(self, event, player) -> bool:
         if event.type == pygame.KEYDOWN:
@@ -151,45 +177,79 @@ class Shop:
         coins_s = self.font_coins.render(f"Coins: {player.coins}", True, (255, 215, 0))
         surf.blit(coins_s, (cx - coins_s.get_width() // 2, 72))
 
-        total_w = _N * _ITEM_W + (_N - 1) * _GAP
-        start_x = cx - total_w // 2
+        items_top = [item for item in SHOP_ITEMS if item["id"] not in WEAPON_IDS]
+        items_bottom = [item for item in SHOP_ITEMS if item["id"] in WEAPON_IDS]
+        max_row = max(len(items_top), len(items_bottom), 1)
+        item_w = (SCREEN_W - _MARGIN * 2 - _GAP * (max_row - 1)) // max_row
 
-        for i, item in enumerate(SHOP_ITEMS):
-            ix     = start_x + i * (_ITEM_W + _GAP)
-            iy     = _ITEMS_Y
-            is_sel = i == self.selected
+        def draw_section_header(text, y):
+            title_s = self.font_item.render(text, True, (210, 210, 230))
+            surf.blit(title_s, (cx - title_s.get_width() // 2, y))
+            line_y = y + title_s.get_height() + 6
+            pygame.draw.line(surf, (70, 70, 100), (_MARGIN, line_y),
+                             (SCREEN_W - _MARGIN, line_y), 2)
+            return line_y + 8
 
-            bg_col = (55, 55, 85) if is_sel else (30, 30, 50)
-            pygame.draw.rect(surf, bg_col,
-                pygame.Rect(ix, iy, _ITEM_W, _ITEM_H), border_radius=10)
+        def draw_row(items, row_y):
+            if not items:
+                return row_y
+            total_w = len(items) * item_w + (len(items) - 1) * _GAP
+            start_x = cx - total_w // 2
 
-            border_col = item["color"] if is_sel else (70, 70, 95)
-            border_w   = 3 if is_sel else 1
-            pygame.draw.rect(surf, border_col,
-                pygame.Rect(ix, iy, _ITEM_W, _ITEM_H), border_w, border_radius=10)
+            for i, item in enumerate(items):
+                ix     = start_x + i * (item_w + _GAP)
+                iy     = row_y
+                is_sel = ITEM_INDEX[item["id"]] == self.selected
 
-            pygame.draw.rect(surf, item["color"],
-                pygame.Rect(ix + 8, iy + 8, _ITEM_W - 16, 5), border_radius=3)
+                bg_col = (55, 55, 85) if is_sel else (30, 30, 50)
+                pygame.draw.rect(surf, bg_col,
+                    pygame.Rect(ix, iy, item_w, _ITEM_H), border_radius=10)
 
-            name_s = self.font_item.render(item["name"], True, (235, 235, 255))
-            desc_s = self.font_desc.render(item["desc"],  True, (170, 170, 195))
-            cost_s = self.font_desc.render(f"{item['cost']} coins", True, (255, 215, 0))
+                border_col = item["color"] if is_sel else (70, 70, 95)
+                border_w   = 3 if is_sel else 1
+                pygame.draw.rect(surf, border_col,
+                    pygame.Rect(ix, iy, item_w, _ITEM_H), border_w, border_radius=10)
 
-            surf.blit(name_s, (ix + (_ITEM_W - name_s.get_width()) // 2, iy + 22))
-            surf.blit(desc_s, (ix + (_ITEM_W - desc_s.get_width()) // 2, iy + 50))
-            surf.blit(cost_s, (ix + (_ITEM_W - cost_s.get_width()) // 2, iy + 72))
+                pygame.draw.rect(surf, item["color"],
+                    pygame.Rect(ix + 8, iy + 8, item_w - 16, 5), border_radius=3)
 
-            if item["id"] in ("speed", "damage"):
-                bought = getattr(player, f"{item['id']}_upgraded", False)
-                if bought:
-                    sold_s = self.font_hint.render("comprado", True, (100, 220, 100))
-                    surf.blit(sold_s,
-                        (ix + (_ITEM_W - sold_s.get_width()) // 2, iy + 92))
+                icon = self.weapon_icons.get(item["id"]) if item["id"] in WEAPON_IDS else None
+                text_top = iy + 22
+                if icon is not None:
+                    icon_rect = icon.get_rect()
+                    icon_rect.centerx = ix + item_w // 2
+                    icon_rect.top = iy + 0
+                    surf.blit(icon, icon_rect)
+                    text_top = icon_rect.bottom + 6
+
+                name_s = self.font_item.render(item["name"], True, (235, 235, 255))
+                desc_s = self.font_desc.render(item["desc"],  True, (170, 170, 195))
+                cost_s = self.font_desc.render(f"{item['cost']} coins", True, (255, 215, 0))
+
+                surf.blit(name_s, (ix + (item_w - name_s.get_width()) // 2, text_top))
+                surf.blit(desc_s, (ix + (item_w - desc_s.get_width()) // 2, text_top + 24))
+                surf.blit(cost_s, (ix + (item_w - cost_s.get_width()) // 2, text_top + 46))
+
+                if item["id"] in ("speed", "damage"):
+                    bought = getattr(player, f"{item['id']}_upgraded", False)
+                    if bought:
+                        sold_s = self.font_hint.render("comprado", True, (100, 220, 100))
+                        surf.blit(sold_s,
+                            (ix + (item_w - sold_s.get_width()) // 2, iy + 92))
+
+            return row_y + _ITEM_H
+
+        row1_y = draw_section_header("Melhorias", _ITEMS_Y)
+        row1_bottom = draw_row(items_top, row1_y)
+        row2_header_y = row1_bottom + _SECTION_GAP
+        row2_y = draw_section_header("Armas", row2_header_y) if items_bottom else row1_bottom
+        row2_bottom = draw_row(items_bottom, row2_y) if items_bottom else row1_bottom
+        items_bottom_y = row2_bottom
 
         hint_s = self.font_hint.render(
             "← →  selecionar     Enter  comprar     E / Esc  sair",
             True, (140, 140, 180))
-        surf.blit(hint_s, (cx - hint_s.get_width() // 2, _ITEMS_Y + _ITEM_H + 18))
+        surf.blit(hint_s, (cx - hint_s.get_width() // 2, items_bottom_y + 18))
 
         if self.message_timer > 0:
             self.message_timer -= 1
@@ -197,8 +257,8 @@ class Shop:
             mc    = (100, 255, 120) if "comprado" in self.message else (255, 80, 80)
             ms    = self.font_item.render(self.message, True, mc)
             ms.set_alpha(alpha)
-            surf.blit(ms, (cx - ms.get_width() // 2, _ITEMS_Y + _ITEM_H + 46))
+            surf.blit(ms, (cx - ms.get_width() // 2, items_bottom_y + 46))
 
         hp_s = self.font_desc.render(
             f"HP: {player.health} / {player.max_health}", True, (220, 80, 80))
-        surf.blit(hp_s, (cx - hp_s.get_width() // 2, _ITEMS_Y + _ITEM_H + 74))
+        surf.blit(hp_s, (cx - hp_s.get_width() // 2, items_bottom_y + 74))
