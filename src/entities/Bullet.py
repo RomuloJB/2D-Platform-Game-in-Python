@@ -1,68 +1,69 @@
+"""Bullet — projétil do player. Herda DynamicObject (sem gravidade).
+Categoria PLAYER_SHOT; colide com ENEMY e PLATFORM. Limite de alcance por
+distância percorrida (max_range), como no pull do colega."""
+
 import math
 import random
 
 import pygame
+from pygame.math import Vector2
 
-from src.utilz.Constants import *
+from src.objects.DynamicObject import DynamicObject
 from src.objects.Particle import Particle
+from src.utilz.Constants import SCREEN_W, SCREEN_H, Layer, C_BULLET, C_BULLET_GL
 
 
-class Bullet:
+class Bullet(DynamicObject):
     W = 10
     H = 7
 
     def __init__(self, x, y, vx, vy, damage=1, max_range=500, weapon_type="pistol"):
-        self.x = float(x)
-        self.y = float(y)
-        self.vx = vx
-        self.vy = vy
-        self.start_x = self.x
-        self.start_y = self.y
-        self.damage = damage
-        self.alive = True
-        self.scored = False
-        self.trail = []
+        super().__init__(x - self.W / 2, y - self.H / 2, self.W, self.H,
+                         category=Layer.PLAYER_SHOT,
+                         mask=Layer.ENEMY | Layer.PLATFORM,
+                         use_gravity=False)
+        self.velocity = Vector2(vx, vy)
         self.damage = damage
         self.max_range = max_range
         self.weapon_type = weapon_type
+        self.scored = False
+        self.traveled = 0.0
+        self.trail = []
 
-    def update(self, enemies, platforms, particles):
+    def update(self, dt: float, world) -> None:
         if not self.alive:
             return
 
-        self.trail.append((self.x, self.y))
+        self.trail.append((self.position.x + self.W / 2,
+                           self.position.y + self.H / 2))
         if len(self.trail) > 6:
             self.trail.pop(0)
 
-        self.x += self.vx
-        self.y += self.vy
+        step = self.velocity * dt
+        self.position += step
+        self.traveled += step.length()
+        self.sync_rect()
 
-        if math.hypot(self.x - self.start_x, self.y - self.start_y) >= self.max_range:
+        if self.traveled >= self.max_range:
             self.alive = False
             return
 
-        bullet_rect = pygame.Rect(
-            int(self.x - self.W // 2),
-            int(self.y - self.H // 2),
-            self.W, self.H
-        )
-
-        for plat in platforms:
-            if plat.kind != "spike" and bullet_rect.colliderect(plat.rect):
-                self._impact(particles, hit_enemy=False)
+        for plat in world.platforms:
+            if plat.kind != "spike" and self.rect.colliderect(plat.rect):
+                self._impact(world.particles, hit_enemy=False)
                 return
 
-        for enemy in enemies:
-            if enemy.alive and bullet_rect.colliderect(enemy.rect):
-                killed = enemy.take_hit() if hasattr(enemy, 'take_hit') else True
-                if killed:
-                    enemy.alive = False
-                self._impact(particles, hit_enemy=True)
+        for enemy in world.enemies:
+            if enemy.alive and self.rect.colliderect(enemy.rect):
+                killed = enemy.take_hit(self.damage)
+                self._impact(world.particles, hit_enemy=True)
                 self.scored = killed
                 return
 
     def _impact(self, particles, hit_enemy):
         self.alive = False
+        cx = self.position.x + self.W / 2
+        cy = self.position.y + self.H / 2
         colors = (
             [(255, 200, 50), (255, 140, 0), (255, 80, 0)]
             if not hit_enemy
@@ -70,16 +71,15 @@ class Bullet:
         )
         for _ in range(10):
             particles.append(Particle(
-                self.x, self.y,
-                random.uniform(-4, 4), random.uniform(-4, 1),
-                20, random.choice(colors), random.randint(3, 5)
+                cx, cy,
+                random.uniform(-240, 240), random.uniform(-240, 60),
+                0.33, random.choice(colors), random.randint(3, 5)
             ))
-        particles.append(Particle(self.x, self.y, 0, 0, 6, (255, 255, 220), 6))
+        particles.append(Particle(cx, cy, 0, 0, 0.1, (255, 255, 220), 6))
 
     def draw(self, surf, cam_x, cam_y):
         if not self.alive:
             return
-
         for i, (tx, ty) in enumerate(self.trail):
             t = (i + 1) / len(self.trail)
             r = int(255 * t)
@@ -89,9 +89,9 @@ class Bullet:
             if -20 < sx < SCREEN_W + 20 and -20 < sy < SCREEN_H + 20:
                 pygame.draw.circle(surf, (r, g, 0), (sx, sy), s)
 
-        angle = math.degrees(math.atan2(-self.vy, self.vx))
-        sx = int(self.x - cam_x)
-        sy = int(self.y - cam_y)
+        angle = math.degrees(math.atan2(-self.velocity.y, self.velocity.x))
+        sx = int(self.position.x + self.W / 2 - cam_x)
+        sy = int(self.position.y + self.H / 2 - cam_y)
         if -20 < sx < SCREEN_W + 20 and -20 < sy < SCREEN_H + 20:
             col = C_BULLET_GL if self.damage > 1 else C_BULLET
             bsurf = pygame.Surface((self.W + 2, self.H + 2), pygame.SRCALPHA)

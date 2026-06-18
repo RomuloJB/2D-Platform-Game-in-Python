@@ -1,25 +1,37 @@
+"""
+Enemy — herda Character (lógica de batalha). EnemyBullet — herda DynamicObject.
+Física em dt; desenho idêntico ao original.
+"""
+
 import math
 import random
 
 import pygame
+from pygame.math import Vector2
 
-from src.utilz.Constants import *
+from src.entities.Character import Character
+from src.objects.DynamicObject import DynamicObject
+from src.utilz.Constants import SCREEN_W, Layer, GRAVITY, MAX_FALL, C_ENEMY, C_ENEMY_EY
 
 
-class EnemyBullet:
+class EnemyBullet(DynamicObject):
     SIZE = 6
 
     def __init__(self, x, y, direction):
-        self.rect = pygame.Rect(x, y, self.SIZE, self.SIZE)
-        self.vx = direction * 4
-        self.vy = 0
-        self.alive = True
+        super().__init__(x, y, self.SIZE, self.SIZE,
+                         category=Layer.ENEMY_SHOT,
+                         mask=Layer.PLATFORM | Layer.PLAYER,
+                         use_gravity=True)
+        self.velocity = Vector2(direction * 4 * 60, 0)
 
-    def update(self, platforms):
-        self.rect.x += int(self.vx)
-        self.vy += GRAVITY
-        self.vy = min(self.vy, MAX_FALL)
-        self.rect.y += int(self.vy)
+    def update(self, dt: float, world=None) -> None:
+        platforms = world.platforms if world is not None else []
+        self.position.x += self.velocity.x * dt
+        self.velocity.y += GRAVITY * dt
+        if self.velocity.y > MAX_FALL:
+            self.velocity.y = MAX_FALL
+        self.position.y += self.velocity.y * dt
+        self.sync_rect()
 
         for plat in platforms:
             if plat.kind == "spike":
@@ -28,7 +40,7 @@ class EnemyBullet:
                 self.alive = False
                 return
 
-        if self.rect.x < -200 or self.rect.x > SCREEN_W + 200:
+        if self.position.x < -200 or self.position.x > SCREEN_W + 4000:
             self.alive = False
 
     def draw(self, surf, cam_x, cam_y):
@@ -42,40 +54,37 @@ class EnemyBullet:
             (rx + self.SIZE // 2, ry + self.SIZE // 2), self.SIZE // 4)
 
 
-class Enemy:
+class Enemy(Character):
     SIZE_W = 30
     SIZE_H = 32
 
-    MELEE  = "melee"
+    MELEE = "melee"
     RANGED = "ranged"
 
-    MELEE_ATTACK_COOLDOWN  = 60
-    RANGED_ATTACK_COOLDOWN = 120
-    RANGED_DETECT_RANGE    = 280
+    MELEE_ATTACK_COOLDOWN = 60 / 60
+    RANGED_ATTACK_COOLDOWN = 120 / 60
+    RANGED_DETECT_RANGE = 280
 
     def __init__(self, x, y, platform_rect, speed_mult=1.0, hp=1):
-        self.rect = pygame.Rect(x, y, self.SIZE_W, self.SIZE_H)
+        super().__init__(x, y, self.SIZE_W, self.SIZE_H,
+                         category=Layer.ENEMY,
+                         mask=Layer.PLATFORM,
+                         use_gravity=True, max_health=hp)
         self.plat = platform_rect
-        base_speed = random.choice([-1.5, 1.5])
-        self.vx = base_speed * speed_mult
-        self.vy = 0
-        self.on_ground = False
-        self.alive = True
-        self.health = hp
-        self.max_health = hp
-        self.anim = 0
-        self.stunned = 0
+        base_speed = random.choice([-1.5, 1.5]) * 60
+        self.velocity.x = base_speed * speed_mult
+        self.stunned = 0.0
         self.kind = random.choice([self.MELEE, self.RANGED])
-        self.attack_timer = 0
+        self.attack_timer = 0.0
         self.bullets = []
-        self.is_shooting = 0
+        self.is_shooting = 0.0
 
     def _try_melee_attack(self, player_rect):
         if self.attack_timer > 0 or not self.on_ground:
-            return
+            return False
         if self.rect.inflate(20, 0).colliderect(player_rect):
             self.attack_timer = self.MELEE_ATTACK_COOLDOWN
-            self.stunned = 8
+            self.stunned = 8 / 60
             return True
         return False
 
@@ -90,59 +99,70 @@ class Enemy:
             by = self.rect.centery - EnemyBullet.SIZE // 2
             self.bullets.append(EnemyBullet(bx, by, direction))
             self.attack_timer = self.RANGED_ATTACK_COOLDOWN
-            self.is_shooting = 12
+            self.is_shooting = 12 / 60
 
-    def take_hit(self):
+    def take_hit(self, amount=1):
         """Reduz HP; retorna True se morreu."""
-        self.health -= 1
-        self.stunned = 10
-        return self.health <= 0
+        self.health -= amount
+        self.stunned = 10 / 60
+        if self.health <= 0:
+            self.health = 0
+            self.alive = False
+            return True
+        return False
 
-    def update(self, platforms, player_rect=None):
+    def update(self, dt: float, world) -> None:
         if not self.alive:
             return
+        player_rect = world.player.rect if world.player else None
 
-        if self.attack_timer > 0:
-            self.attack_timer -= 1
-        if self.is_shooting > 0:
-            self.is_shooting -= 1
+        self.attack_timer = max(0.0, self.attack_timer - dt)
+        self.is_shooting = max(0.0, self.is_shooting - dt)
         if self.stunned > 0:
-            self.stunned -= 1
-            self.vx *= 0.85
+            self.stunned = max(0.0, self.stunned - dt)
+            self.velocity.x *= pow(0.85, dt * 60)
 
-        if self.kind == self.RANGED and self.is_shooting == 0:
-            self.rect.x += int(self.vx)
-        elif self.kind == self.MELEE:
-            self.rect.x += int(self.vx)
+        moving = not (self.kind == self.RANGED and self.is_shooting > 0)
+        if moving:
+            self.position.x += self.velocity.x * dt
+            self.sync_rect()
 
         if self.rect.left <= self.plat.left or self.rect.right >= self.plat.right:
-            self.vx *= -1
+            self.velocity.x *= -1
 
-        self.vy += GRAVITY
-        self.vy = min(self.vy, MAX_FALL)
-        self.rect.y += int(self.vy)
+        self.velocity.y += GRAVITY * dt
+        if self.velocity.y > MAX_FALL:
+            self.velocity.y = MAX_FALL
+        self.position.y += self.velocity.y * dt
+        self.sync_rect()
         self.on_ground = False
-
-        for plat in platforms:
+        for plat in world.platforms:
             if plat.kind == "spike":
                 continue
             if self.rect.colliderect(plat.rect):
-                if self.vy > 0 and self.rect.bottom - int(self.vy) <= plat.rect.top + 5:
+                if self.velocity.y > 0:
                     self.rect.bottom = plat.rect.top
-                    self.vy = 0
+                    self.velocity.y = 0
                     self.on_ground = True
+                    self.sync_position()
 
         if player_rect is not None:
             if self.kind == self.MELEE:
-                self._try_melee_attack(player_rect)
+                if self._try_melee_attack(player_rect):
+                    world.player.take_damage(world.particles)
             else:
                 self._try_ranged_attack(player_rect)
 
         for b in self.bullets:
-            b.update(platforms)
+            b.update(dt, world)
+        if player_rect is not None:
+            for b in self.bullets:
+                if b.alive and b.rect.colliderect(player_rect):
+                    world.player.take_damage(world.particles)
+                    b.alive = False
         self.bullets = [b for b in self.bullets if b.alive]
 
-        self.anim += 0.1
+        self.anim += 6 * dt
 
     def get_bullets(self):
         return self.bullets
@@ -163,14 +183,14 @@ class Enemy:
 
         base_color = C_ENEMY if self.kind == self.MELEE else (100, 60, 180)
         color = base_color if self.stunned == 0 else (255, 120, 120)
-
         pygame.draw.rect(surf, color, body_rect, border_radius=4)
 
         if self.kind == self.RANGED:
             accent = pygame.Rect(rx + 2, ry + squat + 2, self.SIZE_W - 4, 6)
             pygame.draw.rect(surf, (160, 100, 220), accent, border_radius=2)
 
-        eye_offset = 4 if self.vx > 0 else -4
+        vx = self.velocity.x
+        eye_offset = 4 if vx > 0 else -4
         pygame.draw.circle(surf, C_ENEMY_EY,
             (rx + self.SIZE_W // 2 + eye_offset - 4, ry + 10), 4)
         pygame.draw.circle(surf, C_ENEMY_EY,
@@ -180,18 +200,15 @@ class Enemy:
         pygame.draw.circle(surf, (0, 0, 0),
             (rx + self.SIZE_W // 2 + eye_offset + 4, ry + 11), 2)
 
-        # barra de HP se hp > 1
         if self.max_health > 1:
             bar_w = self.SIZE_W
             filled = int(bar_w * self.health / self.max_health)
-            pygame.draw.rect(surf, (60, 20, 20),
-                pygame.Rect(rx, ry - 8, bar_w, 4))
-            pygame.draw.rect(surf, (220, 60, 60),
-                pygame.Rect(rx, ry - 8, filled, 4))
+            pygame.draw.rect(surf, (60, 20, 20), pygame.Rect(rx, ry - 8, bar_w, 4))
+            pygame.draw.rect(surf, (220, 60, 60), pygame.Rect(rx, ry - 8, filled, 4))
 
         if self.kind == self.MELEE:
-            arm_extend = 10 if self.attack_timer > self.MELEE_ATTACK_COOLDOWN - 10 else 0
-            side = 1 if self.vx > 0 else -1
+            arm_extend = 10 if self.attack_timer > self.MELEE_ATTACK_COOLDOWN - 10 / 60 else 0
+            side = 1 if vx > 0 else -1
             arm_x = rx + self.SIZE_W // 2 + side * (12 + arm_extend)
             arm_y = ry + 18 + squat
             pygame.draw.line(surf, (160, 40, 40),
@@ -199,16 +216,15 @@ class Enemy:
             pygame.draw.rect(surf, (200, 60, 40),
                 pygame.Rect(arm_x - 3, arm_y - 5, 6, 10), border_radius=2)
         else:
-            gun_side   = 1 if self.vx > 0 else -1
-            gun_x      = rx + self.SIZE_W // 2 + gun_side * 8
-            gun_y      = ry + 20 + squat
+            gun_side = 1 if vx > 0 else -1
+            gun_x = rx + self.SIZE_W // 2 + gun_side * 8
+            gun_y = ry + 20 + squat
             barrel_end = rx + self.SIZE_W // 2 + gun_side * 20
-            pygame.draw.line(surf, (80, 80, 80),
-                (gun_x, gun_y), (barrel_end, gun_y), 4)
+            pygame.draw.line(surf, (80, 80, 80), (gun_x, gun_y), (barrel_end, gun_y), 4)
             pygame.draw.rect(surf, (60, 60, 60),
                 pygame.Rect(gun_x - 4, gun_y - 4, 8, 8), border_radius=2)
             if self.is_shooting > 0:
-                flash_r = self.is_shooting // 2 + 2
+                flash_r = int(self.is_shooting * 60) // 2 + 2
                 pygame.draw.circle(surf, (255, 200, 50), (barrel_end, gun_y), flash_r)
 
         leg = int(math.sin(self.anim) * 5)
