@@ -1,46 +1,60 @@
+"""
+Player — herda Character (-> DynamicObject -> GameObject).
+Física com Vector2 + dt. Mantém coyote time, jump buffer, pulo variável,
+stomp, coleta de moeda e i-frames. Desenho idêntico ao original.
+"""
+
 import math
 import random
 
 import pygame
 
-from src.utilz.Constants import *
+from src.entities.Character import Character
 from src.objects.Particle import Particle
-from src.entities.Bullet import Bullet
-from .Weapons import Pistol, Shotgun, MachineGun
-from src.utilz.Utilz import lerp
+from src.entities.Weapons import Pistol, Shotgun, MachineGun
+from src.utilz.Constants import (
+    Layer, PLAYER_SPEED, PLAYER_FRICTION, JUMP_POWER, JUMP_HOLD_FORCE,
+    JUMP_HOLD_TIME, COYOTE_TIME, JUMP_BUFFER, C_PLAYER, C_PLAYER_E,
+    C_PLAYER_EY, C_PARTICLE, C_COIN,
+)
+
+# Aceleração horizontal: quantos px/s² de empurrão por frame (convertido para /s)
+# Original: vx chega em ~8 frames → PLAYER_SPEED / (8/60) ≈ 2250 px/s²
+_ACCEL = PLAYER_SPEED / (8 / 60)     # ~2250 px/s²
+
+# Fator de atrito por segundo (0.75 por frame → 0.75^60 em 1 segundo,
+# mas isso freia demais; usamos 0.75^60 só quando sem input).
+# Na prática: multiplica velocidade por esse fator a cada segundo.
+_FRICTION_PER_SEC = pow(0.75, 60)    # ≈ 1.3e-6  (freia quase na hora)
 
 
-class Player:
+class Player(Character):
     W = 28
     H = 36
 
     def __init__(self, x, y):
-        self.rect = pygame.Rect(x, y, self.W, self.H)
-        self.vx = 0.0
-        self.vy = 0.0
-        self.on_ground = False
-        self.coyote = 0
-        self.jump_buf = 0
-        self.jump_hold = 0
-        self.alive = True
-        self.invincible = 0
-        self.max_health = 3
-        self.health = self.max_health
-        self.anim = 0
-        self.facing = 1
+        super().__init__(x, y, self.W, self.H,
+                         category=Layer.PLAYER,
+                         mask=Layer.PLATFORM | Layer.HAZARD,
+                         use_gravity=True, max_health=3)
+        self.coyote = 0.0
+        self.jump_buf = 0.0
+        self.jump_hold = 0.0
+        self.cooldown = 0.0
+        self.shoot_anim = 0.0
+        self.land_squash = 0.0
         self.score = 0
         self.was_on_ground = False
-        self.land_squash = 0
-        self.cooldown = 0
-        self.shoot_anim = 0
         self.weapons = [Pistol()]
         self.weapon_index = 0
-        # ── persistem entre mortes ─────────────────────────────
         self.unlocked_weapons = {"pistol"}
         self.coins = 0
-        self.ammo = 999          # munição infinita por padrão (pode limitar depois)
+        self.ammo = 999
         self.speed_upgraded = False
         self.damage_upgraded = False
+        self._want_left = False
+        self._want_right = False
+        self._jump_held = False
 
     @property
     def current_weapon(self):
@@ -50,11 +64,10 @@ class Player:
         if 0 <= index < len(self.weapons):
             self.weapon_index = index
 
-    # ── conveniência para speed ────────────────────────────────
     @property
     def move_speed(self):
-        return PLAYER_SPEED * (1.2 if self.speed_upgraded else 5.0)
-    
+        return PLAYER_SPEED * (1.2 if self.speed_upgraded else 1.0)
+
     def unlock_weapon(self, weapon_id: str, equip: bool = True) -> bool:
         if weapon_id in self.unlocked_weapons:
             return False
@@ -69,184 +82,175 @@ class Player:
             self.weapon_index = len(self.weapons) - 1
         return True
 
-    # ── reset ao morrer (mantém coins, armas, upgrades) ────────
     def soft_reset(self, x, y):
-        self.rect.topleft = (x, y)
-        self.vx = 0.0
-        self.vy = 0.0
+        self.position.update(x, y)
+        self.sync_rect()
+        self.velocity.update(0, 0)
         self.on_ground = False
-        self.coyote = 0
-        self.jump_buf = 0
-        self.jump_hold = 0
+        self.coyote = 0.0
+        self.jump_buf = 0.0
+        self.jump_hold = 0.0
         self.alive = True
-        self.invincible = 0
-        self.health = self.max_health   # reseta HP mas mantém max
-        self.anim = 0
+        self.invincible = 0.0
+        self.health = self.max_health
+        self.anim = 0.0
         self.was_on_ground = False
-        self.land_squash = 0
-        self.shoot_anim = 0
-        # coins, ammo, upgrades NÃO resetam
+        self.land_squash = 0.0
+        self.shoot_anim = 0.0
+
+    # compat: __main__ antigo chama handle_input(keys); apply_input é o novo
+    def apply_input(self, input_map: dict) -> None:
+        self._want_left = input_map.get("left", False)
+        self._want_right = input_map.get("right", False)
+        jump = input_map.get("jump", False)
+        if jump:
+            self.jump_buf = JUMP_BUFFER
+        self._jump_held = jump
+
+    def handle_input(self, keys) -> None:
+        self.apply_input({
+            "left":  keys[pygame.K_LEFT] or keys[pygame.K_a],
+            "right": keys[pygame.K_RIGHT] or keys[pygame.K_d],
+            "jump":  keys[pygame.K_SPACE] or keys[pygame.K_UP] or keys[pygame.K_w],
+        })
 
     def shoot(self, mouse_screen_x, mouse_screen_y, cam_x, cam_y, bullets):
         if self.cooldown > 0 or not self.alive:
             return
-
-        weapon = self.weapons[self.weapon_index]
+        weapon = self.current_weapon
         ox = self.rect.centerx
         oy = self.rect.centery - 4
         mx = mouse_screen_x + cam_x
         my = mouse_screen_y + cam_y
         dx = mx - ox
         dy = my - oy
-        dist = math.hypot(dx, dy) or 1
-        speed = BULLET_SPEED
-        vx = dx / dist * speed
-        vy = dy / dist * speed
-        dmg = 2 if self.damage_upgraded else 1
-        self.cooldown = weapon.cooldown   
-        bullets.extend(weapon.create_bullets(ox, oy, dx, dy))  # pellets da escopeta
-        self.shoot_anim = 6
-
+        dmg = weapon.damage * (2 if self.damage_upgraded else 1)
+        self.cooldown = weapon.cooldown
+        bullets.extend(weapon.create_bullets(ox, oy, dx, dy, damage=dmg))
+        self.shoot_anim = 6 / 60
         if dx > 0:
             self.facing = 1
         elif dx < 0:
             self.facing = -1
 
-    def handle_input(self, keys):
-        spd = self.move_speed
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.vx = lerp(self.vx, -spd, PLAYER_ACCEL / spd)
-            self.facing = -1
-        elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.vx = lerp(self.vx, spd, PLAYER_ACCEL / spd)
-            self.facing = 1
-        else:
-            self.vx *= PLAYER_FRICTION
-
-        if abs(self.vx) < 0.1:
-            self.vx = 0
-
-        if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_SPACE]:
-            self.jump_buf = JUMP_BUFFER
-        else:
-            if self.jump_buf > 0:
-                self.jump_buf -= 1
-
-        jump_held = keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_SPACE]
-        if self.jump_hold > 0 and jump_held:
-            self.vy -= 0.7
-            self.jump_hold -= 1
-        elif not jump_held:
-            self.jump_hold = 0
-
-    def try_jump(self):
+    def _try_jump(self):
         if self.jump_buf > 0 and (self.on_ground or self.coyote > 0):
-            self.vy = JUMP_POWER
-            self.jump_buf = 0
-            self.coyote = 0
-            self.jump_hold = JUMP_HOLD_FRAMES
+            self.velocity.y = JUMP_POWER
+            self.jump_buf = 0.0
+            self.coyote = 0.0
+            self.jump_hold = JUMP_HOLD_TIME
             return True
         return False
 
-    def update(self, platforms, enemies, coins, particles):
+    def update(self, dt: float, world) -> None:
         if not self.alive:
             return
 
         self.was_on_ground = self.on_ground
-        self.invincible = max(0, self.invincible - 1)
-        self.cooldown = max(0, self.cooldown - 1)
-        self.shoot_anim = max(0, self.shoot_anim - 1)
-        if self.jump_buf > 0:
-            self.jump_buf -= 1
-        if self.coyote > 0:
-            self.coyote -= 1
+        self.tick_timers(dt)
+        self.cooldown = max(0.0, self.cooldown - dt)
+        self.shoot_anim = max(0.0, self.shoot_anim - dt)
+        self.jump_buf = max(0.0, self.jump_buf - dt)
+        self.coyote = max(0.0, self.coyote - dt)
+        self.land_squash = max(0.0, self.land_squash - dt)
 
-        self.vy += GRAVITY
-        self.vy = min(self.vy, MAX_FALL)
+        spd = self.move_speed
+        if self._want_left:
+            self.velocity.x -= _ACCEL * dt
+            if self.velocity.x < -spd:
+                self.velocity.x = -spd
+            self.facing = -1
+        elif self._want_right:
+            self.velocity.x += _ACCEL * dt
+            if self.velocity.x > spd:
+                self.velocity.x = spd
+            self.facing = 1
+        else:
+            # atrito por dt: pow(0.75, dt*60) replica o 0.75/frame original
+            self.velocity.x *= pow(0.75, dt * 60)
+            if abs(self.velocity.x) < 10:
+                self.velocity.x = 0
 
-        self.rect.x += int(self.vx)
+        if self.jump_hold > 0 and self._jump_held:
+            self.velocity.y -= JUMP_HOLD_FORCE * dt
+            self.jump_hold = max(0.0, self.jump_hold - dt)
+        elif not self._jump_held:
+            self.jump_hold = 0.0
 
-        prev_bottom = self.rect.bottom
-        self.rect.y += int(self.vy)
-        self.on_ground = False
-
-        for plat in platforms:
-            if self.rect.colliderect(plat.rect):
-                if plat.kind == "spike":
-                    self.take_damage(particles)
-                    continue
-                if self.vy > 0 and prev_bottom <= plat.rect.top + 6:
-                    self.rect.bottom = plat.rect.top
-                    self.vy = 0
-                    self.on_ground = True
-                    
-                elif self.vy < 0 and self.rect.top <= plat.rect.bottom:
-                    self.rect.top = plat.rect.bottom
-                    self.vy = 0
+        # zera vy se estava no chão no frame anterior, para gravidade não acumular
+        if self.was_on_ground:
+            self.velocity.y = 0
+        self.apply_gravity(dt)
+        self.move_and_collide(dt, world.platforms,
+                              on_hazard=lambda: self.take_damage(world.particles))
 
         if self.was_on_ground and not self.on_ground:
             self.coyote = COYOTE_TIME
+        # if not self.was_on_ground and self.on_ground:
+        #     self.land_squash = 8 / 60
 
-        self.try_jump()
+        self._try_jump()
 
-        if abs(self.vx) > 0.5:
-            self.anim += 0.15
+        if abs(self.velocity.x) > 30:
+            self.anim += 9 * dt
         elif self.on_ground:
             self.anim = 0
-        if self.land_squash > 0:
-            self.land_squash -= 1
 
-        for enemy in enemies:
+        for enemy in world.enemies:
             if not enemy.alive:
                 continue
             if self.rect.colliderect(enemy.rect) and self.invincible == 0:
-                if self.vy > 0 and self.rect.bottom - int(self.vy) <= enemy.rect.top + 10:
+                falling = self.velocity.y > 0
+                above = self.rect.bottom - self.velocity.y * dt <= enemy.rect.top + 10
+                if falling and above:
                     enemy.alive = False
-                    self.vy = JUMP_POWER * 0.7
+                    self.velocity.y = JUMP_POWER * 0.7
                     self.score += 100
                     self.coins += 5
                     for _ in range(12):
-                        particles.append(Particle(
+                        world.particles.append(Particle(
                             enemy.rect.centerx, enemy.rect.centery,
-                            random.uniform(-4, 4), random.uniform(-5, -1),
-                            30, random.choice(C_PARTICLE), 5
+                            random.uniform(-240, 240), random.uniform(-300, -60),
+                            0.5, random.choice(C_PARTICLE), 5
                         ))
                 else:
-                    self.take_damage(particles)
+                    self.take_damage(world.particles)
 
-        for coin in coins:
-            if not coin.collected:
-                cr = pygame.Rect(coin.x - 8, coin.base_y - 8, 16, 16)
-                if self.rect.colliderect(cr):
-                    coin.collected = True
-                    self.score += 10
-                    self.coins += 1
-                    for _ in range(8):
-                        particles.append(Particle(
-                            coin.x, coin.base_y,
-                            random.uniform(-3, 3), random.uniform(-4, -0.5),
-                            25, C_COIN, 4
-                        ))
+        for coin in world.coins:
+            if not coin.collected and self.rect.colliderect(coin.rect):
+                coin.collected = True
+                self.score += 10
+                self.coins += 1
+                for _ in range(8):
+                    world.particles.append(Particle(
+                        coin.center_x, coin.base_y,
+                        random.uniform(-180, 180), random.uniform(-240, -30),
+                        0.42, C_COIN, 4
+                    ))
 
-    def take_damage(self, particles):
+    def take_damage(self, particles=None, amount=1):
         if self.invincible > 0:
-            return
-        self.health -= 1
-        self.invincible = 90
-        self.vy = JUMP_POWER * 0.5
-        for _ in range(10):
-            particles.append(Particle(
-                self.rect.centerx, self.rect.centery,
-                random.uniform(-4, 4), random.uniform(-5, -1),
-                35, C_PLAYER_E, 5
-            ))
+            return False
+        self.health -= amount
+        self.invincible = 90 / 60
+        self.velocity.y = JUMP_POWER * 0.5
+        if particles is not None:
+            for _ in range(10):
+                particles.append(Particle(
+                    self.rect.centerx, self.rect.centery,
+                    random.uniform(-240, 240), random.uniform(-300, -60),
+                    0.58, C_PLAYER_E, 5
+                ))
         if self.health <= 0:
+            self.health = 0
             self.alive = False
+            return True
+        return False
 
     def draw(self, surf, cam_x, cam_y):
         if not self.alive:
             return
-        if self.invincible > 0 and (self.invincible // 5) % 2 == 0:
+        if self.invincible > 0 and (int(self.invincible * 60) // 5) % 2 == 0:
             return
 
         rx = self.rect.x - cam_x
@@ -255,7 +259,7 @@ class Player:
         squash_x = 0
         squash_y = 0
         if self.land_squash > 0:
-            t = self.land_squash / 8
+            t = (self.land_squash * 60) / 8
             squash_x = int(6 * t)
             squash_y = int(-6 * t)
 
@@ -272,7 +276,8 @@ class Player:
         pygame.draw.circle(surf, C_PLAYER_EY, (eye_x, ry + 10), 5)
         pygame.draw.circle(surf, (0, 0, 0), (eye_x + self.facing, ry + 11), 2)
 
-        leg_swing = int(math.sin(self.anim) * 6) if abs(self.vx) > 0.5 else 0
+        moving = abs(self.velocity.x) > 30
+        leg_swing = int(math.sin(self.anim) * 6) if moving else 0
         if self.on_ground:
             pygame.draw.rect(surf, (30, 160, 80),
                 pygame.Rect(rx + 4, ry + self.H - 2, 8, 10 + leg_swing))

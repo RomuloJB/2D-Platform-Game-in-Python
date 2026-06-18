@@ -127,7 +127,7 @@ class Shop:
                 self.selected = (self.selected + 1) % len(SHOP_ITEMS)
             elif event.key in (pygame.K_RETURN, pygame.K_z):
                 self._buy(player, SHOP_ITEMS[self.selected])
-            elif event.key in (pygame.K_e, pygame.K_ESCAPE):
+            elif event.key in (pygame.K_e, pygame.K_ESCAPE, pygame.K_END):
                 return True
         return False
 
@@ -257,7 +257,7 @@ class Shop:
         items_bottom_y = row2_bottom
 
         hint_s = self.font_hint.render(
-            "← →  selecionar     Enter  comprar     E / Esc  sair",
+            "← →  selecionar     Enter  comprar    End sair",
             True, (140, 140, 180))
         surf.blit(hint_s, (cx - hint_s.get_width() // 2, items_bottom_y + 18))
 

@@ -1,2 +1,1 @@
-# 2D-Platform-Game-in-Python
-
+# Plataforma 2D — reestruturado com POO

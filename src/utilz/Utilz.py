@@ -2,12 +2,17 @@ import pygame
 from src.utilz.Constants import *
 
 
-def lerp(a, b, t):
+def lerp(a: float, b: float, t: float) -> float:
     return a + (b - a) * t
 
 
-def clamp(val, lo, hi):
+def clamp(val: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, val))
+
+
+def lerp_dt(current: float, target: float, smoothing: float, dt: float) -> float:
+    """Lerp estável em relação ao tempo (frame-rate independent)."""
+    return lerp(current, target, 1 - pow(smoothing, dt))
 
 
 def draw_gradient_rect(surf, rect, color_top, color_bot):
