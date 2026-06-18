@@ -53,7 +53,7 @@ class Player:
     # ── conveniência para speed ────────────────────────────────
     @property
     def move_speed(self):
-        return PLAYER_SPEED * (1.2 if self.speed_upgraded else 1.0)
+        return PLAYER_SPEED * (1.2 if self.speed_upgraded else 5.0)
     
     def unlock_weapon(self, weapon_id: str, equip: bool = True) -> bool:
         if weapon_id in self.unlocked_weapons:

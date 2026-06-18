@@ -42,14 +42,14 @@ SHOP_ITEMS = [
     {
         "id":    "shotgun",
         "name":  "Escopeta",
-        "desc":  "Dano alto de perto, 6 balas por disparo",
+        "desc":  "Alto dano | Cadência baixa",
         "cost":  100,
         "color": (200, 80, 80),
     },
     {
         "id":    "machinegun",
         "name":  "Metralhadora",
-        "desc":  "Alta cadência, mata com 2 balas",
+        "desc":  "Dano médio | Cadência alta",
         "cost":  130,
         "color": (80, 200, 255),
     }
@@ -58,13 +58,23 @@ SHOP_ITEMS = [
 WEAPON_IDS = {"shotgun", "machinegun"}
 ITEM_INDEX = {item["id"]: idx for idx, item in enumerate(SHOP_ITEMS)}
 
+ICON_FILE_BY_ID = {
+    "health":     "health-life",
+    "ammo":       "ammo",
+    "speed":      "speed",
+    "damage":     "damage",
+    "extra_life": "extra-life",
+    "shotgun":    "shotgun",
+    "machinegun": "machinegun",
+}
+
 _GAP     = 16
 _MARGIN  = 40
-_ITEM_H  = 110
+_ITEM_H  = 150
 _ITEMS_Y = 130
 _ROW_GAP = 18
 _SECTION_GAP = 14
-_ICON_SIZE = 75
+_ICON_SIZE = 50
 
 
 class Shop:
@@ -74,7 +84,7 @@ class Shop:
         self.selected        = 0
         self.message         = ""
         self.message_timer   = 0
-        self.weapon_icons    = {}
+        self.item_icons       = {}
 
         try:
             self.font_title = pygame.font.SysFont("arial", 32, bold=True)
@@ -89,16 +99,16 @@ class Shop:
             self.font_coins = pygame.font.Font(None, 24)
             self.font_hint  = pygame.font.Font(None, 16)
 
-        for weapon_id in WEAPON_IDS:
-            icon = self._load_weapon_icon(weapon_id)
+        for item_id, file_base in ICON_FILE_BY_ID.items():
+            icon = self._load_item_icon(file_base)
             if icon is not None:
-                self.weapon_icons[weapon_id] = icon
+                self.item_icons[item_id] = icon
 
-    def _load_weapon_icon(self, weapon_id: str):
+    def _load_item_icon(self, file_base: str):
         candidates = [
-            os.path.join("src", "utilz", "img", f"{weapon_id}-icon.png"),
-            os.path.join("src", "ui", "img", f"{weapon_id}-icon.png"),
-            os.path.join("res", f"{weapon_id}_icon.png"),
+            os.path.join("src", "utilz", "img", f"{file_base}-icon.png"),
+            os.path.join("src", "ui", "img", f"{file_base}-icon.png"),
+            os.path.join("res", f"{file_base}_icon.png"),
         ]
         for path in candidates:
             if os.path.exists(path):
@@ -213,12 +223,12 @@ class Shop:
                 pygame.draw.rect(surf, item["color"],
                     pygame.Rect(ix + 8, iy + 8, item_w - 16, 5), border_radius=3)
 
-                icon = self.weapon_icons.get(item["id"]) if item["id"] in WEAPON_IDS else None
+                icon = self.item_icons.get(item["id"])
                 text_top = iy + 22
                 if icon is not None:
                     icon_rect = icon.get_rect()
                     icon_rect.centerx = ix + item_w // 2
-                    icon_rect.top = iy + 0
+                    icon_rect.top = iy + 17
                     surf.blit(icon, icon_rect)
                     text_top = icon_rect.bottom + 6
 
