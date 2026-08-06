@@ -158,7 +158,8 @@ class Game:
 
         cfg = self.world.config
         cam_x, cam_y = int(self.camera.x), int(self.camera.y)
-        Hud.draw_background(self.screen, cam_x, cam_y, cfg.bg_top, cfg.bg_btm)
+        Hud.draw_background(self.screen, cam_x, cam_y, cfg.bg_top, cfg.bg_btm,
+                            getattr(cfg, "bg_image", None))
         self.world.draw(self.screen, cam_x, cam_y)
 
         if self.damage_flash > 0:

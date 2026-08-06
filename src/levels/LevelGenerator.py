@@ -100,7 +100,8 @@ class LevelGenerator:
             elif r < cfg.spike_chance + cfg.moving_chance and chunk_idx > 1:
                 kind = "moving"
 
-            plat = Platform(px, py, pw, TILE_SIZE // 2, kind)
+            plat = Platform(px, py, pw, TILE_SIZE // 2, kind,
+                            theme=cfg.platform_theme)
             if kind == "moving":
                 plat.move_range = rng.randint(40, 110)
                 plat.move_speed = rng.uniform(0.02, 0.05) * cfg.enemy_speed_mult * 0.5

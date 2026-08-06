@@ -24,6 +24,14 @@ class LevelConfig:
     ground_top: Tuple[int, int, int]
     ground_btm: Tuple[int, int, int]
 
+    # Tema das plataformas flutuantes: "grass" | "wood" | "metal" | "sand".
+    # Trocar aqui muda o visual das plataformas daquela fase.
+    platform_theme: str = "grass"
+
+    # Imagem de fundo (parallax com loop). None = usa o fundo procedural
+    # (gradiente + estrelas + montanhas).
+    bg_image: str = None
+
 
 LEVELS: list[LevelConfig] = [
     LevelConfig(
@@ -42,6 +50,8 @@ LEVELS: list[LevelConfig] = [
         bg_btm=(20, 40, 20),
         ground_top=(80, 140, 50),
         ground_btm=(60, 90, 30),
+        platform_theme="grass",
+        bg_image="src/ui/backgrounds/forest.png",
     ),
     LevelConfig(
         level_num=2,
@@ -59,6 +69,9 @@ LEVELS: list[LevelConfig] = [
         bg_btm=(20, 15, 40),
         ground_top=(70, 60, 80),
         ground_btm=(50, 40, 60),
+        platform_theme="wood",
+        bg_image="src/ui/backgrounds/cave.png",
+
     ),
     LevelConfig(
         level_num=3,
@@ -76,6 +89,7 @@ LEVELS: list[LevelConfig] = [
         bg_btm=(45, 25, 10),
         ground_top=(120, 100, 60),
         ground_btm=(80, 65, 35),
+        platform_theme="metal",
     ),
     LevelConfig(
         level_num=4,
@@ -93,6 +107,7 @@ LEVELS: list[LevelConfig] = [
         bg_btm=(60, 20, 5),
         ground_top=(180, 80, 30),
         ground_btm=(120, 40, 15),
+        platform_theme="sand",
     ),
     LevelConfig(
         level_num=5,
@@ -110,5 +125,6 @@ LEVELS: list[LevelConfig] = [
         bg_btm=(15, 10, 35),
         ground_top=(100, 100, 120),
         ground_btm=(60, 60, 80),
+        platform_theme="metal",
     ),
 ]

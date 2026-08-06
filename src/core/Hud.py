@@ -5,9 +5,15 @@ import pygame
 
 from src.utilz.Constants import *
 from src.utilz.Utilz import draw_gradient_rect
+from src.core.Background import draw_image_background
 
 
-def draw_background(surf, cam_x, cam_y, bg_top=None, bg_btm=None):
+def draw_background(surf, cam_x, cam_y, bg_top=None, bg_btm=None, bg_image=None):
+    # Se a fase tem imagem de fundo e ela carrega, usa ela (parallax + loop)
+    # e nao desenha o fundo procedural.
+    if bg_image and draw_image_background(surf, cam_x, bg_image):
+        return
+
     top = bg_top or C_BG_TOP
     btm = bg_btm or C_BG_BTM
     draw_gradient_rect(surf, pygame.Rect(0, 0, SCREEN_W, SCREEN_H), top, btm)
