@@ -17,6 +17,10 @@ from src.gamestates.MenuState import MenuState
 from src.levels.LevelConfig import LEVELS
 from src.ui.Shop import Shop
 from src.core import Hud
+from src.audio.Audio import AudioManager
+
+# Caminho da musica de fundo tocada enquanto o jogo esta rodando (fora do menu).
+MUSIC_THEME = "res/audio/music/theme.wav"
 
 
 class Game:
@@ -38,6 +42,7 @@ class Game:
 
         self.inputs = Inputs()
         self.camera = Camera()
+        self.audio = AudioManager()
 
         self.in_menu = True
         self.menu = MenuState(self.screen)
@@ -83,6 +88,7 @@ class Game:
                 if action == "play":
                     self.in_menu = False
                     self.start_new_game()
+                    self.audio.play_music(MUSIC_THEME)
                 elif action == "quit":
                     self.running = False
                 continue
@@ -90,6 +96,7 @@ class Game:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE and not self.gs.at_checkpoint:
                     self.in_menu = True
+                    self.audio.stop_music()
                     continue
                 if event.key == pygame.K_r and self.gs.game_over:
                     self._load_level(self.gs.current_level)
@@ -107,13 +114,17 @@ class Game:
             if (self.gs.playing and event.type == pygame.MOUSEBUTTONDOWN
                     and event.button == 1):
                 mx, my = pygame.mouse.get_pos()
-                self.player.shoot(mx, my, self.camera.x, self.camera.y,
-                                  self.world.bullets)
+                fired = self.player.shoot(mx, my, self.camera.x, self.camera.y,
+                                          self.world.bullets)
+                if fired:
+                    self.audio.play_sfx("shot")
 
         if self.gs and self.gs.playing and pygame.mouse.get_pressed()[0]:
             mx, my = pygame.mouse.get_pos()
-            self.player.shoot(mx, my, self.camera.x, self.camera.y,
-                              self.world.bullets)
+            fired = self.player.shoot(mx, my, self.camera.x, self.camera.y,
+                                      self.world.bullets)
+            if fired:
+                self.audio.play_sfx("shot")
 
     def update(self, dt):
         if self.in_menu:

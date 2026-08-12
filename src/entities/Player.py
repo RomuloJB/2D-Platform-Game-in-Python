@@ -28,6 +28,7 @@ _ACCEL = PLAYER_SPEED / (8 / 60)     # ~2250 px/s²
 _FRICTION_PER_SEC = pow(0.75, 60)    # ≈ 1.3e-6  (freia quase na hora)
 
 
+
 class Player(Character):
     W = 28
     H = 36
@@ -115,8 +116,12 @@ class Player(Character):
         })
 
     def shoot(self, mouse_screen_x, mouse_screen_y, cam_x, cam_y, bullets):
+        """Tenta atirar. Retorna True se o tiro realmente saiu (para quem
+        chamou, o Game, saber se toca o som de tiro), False se não (arma em
+        cooldown ou player morto)."""
         if self.cooldown > 0 or not self.alive:
-            return
+            return False
+
         weapon = self.current_weapon
         ox = self.rect.centerx
         oy = self.rect.centery - 4
@@ -132,6 +137,7 @@ class Player(Character):
             self.facing = 1
         elif dx < 0:
             self.facing = -1
+        return True
 
     def _try_jump(self):
         if self.jump_buf > 0 and (self.on_ground or self.coyote > 0):
