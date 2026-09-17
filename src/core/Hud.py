@@ -80,7 +80,8 @@ def draw_hud(surf, player, distance, font, font_sm,
 
 
 def draw_controls(surf, font_sm):
-    hints = ["← → : mover", "Espaço/↑ : pular", "Clique esq: atirar", "R : reiniciar"]
+    hints = ["← → : mover", "Espaço/↑ : pular", "Clique esq: atirar",
+             "R : reiniciar", "ESC : pausar"]
     for i, h in enumerate(hints):
         t = font_sm.render(h, True, (150, 150, 200))
         surf.blit(t, (SCREEN_W - t.get_width() - 12, 12 + i * 20))
@@ -97,26 +98,31 @@ def draw_crosshair(surf, x, y):
     pygame.draw.circle(surf, color, (x, y), 3, 1)
 
 
-def draw_game_over(surf, font_big, font, level_num):
+def draw_game_over(surf, font_big, font, level_num, player_name="", score=0):
     ov = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
     ov.fill((0, 0, 0, 160))
     surf.blit(ov, (0, 0))
     t1 = font_big.render("GAME OVER", True, (220, 60, 60))
     t2 = font.render(f"Fase {level_num} — mapa regenerado", True, (200, 200, 220))
-    t3 = font.render("Coins e upgrades mantidos  |  R reiniciar", True, C_HUD)
+    t3 = font.render("Coins e upgrades mantidos  |  R reiniciar  |  ESC menu", True, C_HUD)
     surf.blit(t1, (SCREEN_W // 2 - t1.get_width() // 2, SCREEN_H // 2 - 80))
     surf.blit(t2, (SCREEN_W // 2 - t2.get_width() // 2, SCREEN_H // 2))
     surf.blit(t3, (SCREEN_W // 2 - t3.get_width() // 2, SCREEN_H // 2 + 40))
+    if player_name:
+        t4 = font.render(f"{player_name}: {score} pts salvos no histórico",
+                         True, (255, 215, 0))
+        surf.blit(t4, (SCREEN_W // 2 - t4.get_width() // 2, SCREEN_H // 2 + 80))
 
 
-def draw_victory(surf, font_big, font, score, coins):
+def draw_victory(surf, font_big, font, score, coins, player_name=""):
     ov = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
     ov.fill((0, 0, 0, 180))
     surf.blit(ov, (0, 0))
     t1 = font_big.render("VITÓRIA!", True, (255, 215, 0))
-    t2 = font.render(f"Score final: {score}", True, (200, 255, 200))
+    name  = player_name or "Jogador"
+    t2 = font.render(f"{name} — score final: {score}", True, (200, 255, 200))
     t3 = font.render(f"Coins restantes: {coins}", True, (255, 215, 0))
-    t4 = font.render("Pressione R para jogar novamente", True, C_HUD)
+    t4 = font.render("R jogar novamente  |  ESC menu (ver pontuações)", True, C_HUD)
     surf.blit(t1, (SCREEN_W // 2 - t1.get_width() // 2, SCREEN_H // 2 - 100))
     surf.blit(t2, (SCREEN_W // 2 - t2.get_width() // 2, SCREEN_H // 2 - 20))
     surf.blit(t3, (SCREEN_W // 2 - t3.get_width() // 2, SCREEN_H // 2 + 20))

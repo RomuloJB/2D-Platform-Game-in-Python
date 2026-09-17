@@ -1,12 +1,17 @@
 import pygame
 import math
 
+from src.utilz import Scoreboard
+
 
 class MenuState:
     """
     Tela de menu principal — estilo pixel art retro.
     Usa as cores e resolução reais do jogo (Constants.py).
-    Estados internos: 'main' | 'credits'
+    Estados internos: 'main' | 'name' | 'scores' | 'credits'
+
+    'name'   → digitação do nome antes de começar a partida (vai no score)
+    'scores' → histórico de pontuações dos jogadores
     """
 
     # Paleta extraída de Constants.py
@@ -23,26 +28,36 @@ class MenuState:
     C_PLATFORM = ( 70, 130, 180)   # C_PLATFORM
 
     OPTION_PLAY    = 0
-    OPTION_CREDITS = 1
-    OPTION_QUIT    = 2
+    OPTION_SCORES  = 1
+    OPTION_CREDITS = 2
+    OPTION_QUIT    = 3
+
+    MAX_NAME_LEN = Scoreboard.MAX_NAME_LEN
 
     def __init__(self, screen: pygame.Surface):
         self.screen = screen
         self.width  = screen.get_width()
         self.height = screen.get_height()
-        self._sub   = "main"   # 'main' | 'credits'
+        self._sub   = "main"   # 'main' | 'name' | 'scores' | 'credits'
         self._sel   = 0
         self._tick  = 0
         self._blink = True
+
+        # Nome do jogador — é ele que vai gravado no histórico de scores.
+        # Começa com o nome da última partida registrada.
+        self.player_name = Scoreboard.last_player_name()
+        self._name_buf   = self.player_name
+        self._scores     = []
 
         # Fontes monospace — combinam com pixel art
         self._font_title  = pygame.font.SysFont("couriernew", 56, bold=True)
         self._font_option = pygame.font.SysFont("couriernew", 30, bold=True)
         self._font_sub    = pygame.font.SysFont("couriernew", 15)
         self._font_small  = pygame.font.SysFont("couriernew", 13)
+        self._font_score  = pygame.font.SysFont("couriernew", 16, bold=True)
 
-        self._options = ["JOGAR", "CRÉDITOS", "SAIR"]
-        self._colors  = [self.C_GREEN, self.C_CYAN, self.C_RED]
+        self._options = ["JOGAR", "PONTUAÇÕES", "CRÉDITOS", "SAIR"]
+        self._colors  = [self.C_GREEN, self.C_YELLOW, self.C_CYAN, self.C_RED]
 
         # Estrelas de fundo (semente fixa = sempre igual)
         import random
@@ -79,7 +94,7 @@ class MenuState:
     def handle_event(self, event: pygame.event.Event):
         """
         Retorna:
-            "play"  → iniciar o jogo
+            "play"  → iniciar o jogo (self.player_name já está definido)
             "quit"  → encerrar
             None    → sem ação externa
         """
@@ -90,6 +105,14 @@ class MenuState:
             if event.key in (pygame.K_ESCAPE, pygame.K_RETURN, pygame.K_BACKSPACE):
                 self._sub = "main"
             return None
+
+        if self._sub == "scores":
+            if event.key in (pygame.K_ESCAPE, pygame.K_RETURN, pygame.K_BACKSPACE):
+                self._sub = "main"
+            return None
+
+        if self._sub == "name":
+            return self._handle_name_event(event)
 
         # sub == "main"
         if event.key in (pygame.K_UP, pygame.K_w):
@@ -106,12 +129,50 @@ class MenuState:
 
     def _confirm(self):
         if self._sel == self.OPTION_PLAY:
-            return "play"
+            # antes de jogar, pede o nome que será salvo na pontuação
+            self._name_buf = self.player_name
+            self._sub = "name"
+        if self._sel == self.OPTION_SCORES:
+            self.refresh_scores()
+            self._sub = "scores"
         if self._sel == self.OPTION_CREDITS:
             self._sub = "credits"
         if self._sel == self.OPTION_QUIT:
             return "quit"
         return None
+
+    def _handle_name_event(self, event: pygame.event.Event):
+        """Digitação do nome do jogador. ENTER começa a partida."""
+        if event.key == pygame.K_ESCAPE:
+            self._sub = "main"
+            return None
+
+        if event.key == pygame.K_BACKSPACE:
+            self._name_buf = self._name_buf[:-1]
+            return None
+
+        if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+            self.player_name = Scoreboard.sanitize_name(self._name_buf)
+            self._name_buf = self.player_name
+            self._sub = "main"
+            return "play"
+
+        char = event.unicode
+        if char and char.isprintable() and char != "\t":
+            if len(self._name_buf) < self.MAX_NAME_LEN:
+                self._name_buf += char.upper()
+        return None
+
+    # ─────────────────────────────────────────────────────────────
+    def refresh_scores(self):
+        """Recarrega o histórico do disco (usado ao abrir a tela)."""
+        self._scores = Scoreboard.top_scores(10)
+
+    def reset(self):
+        """Volta o menu para a tela inicial — chamado ao sair de uma partida."""
+        self._sub = "main"
+        self._sel = self.OPTION_PLAY
+        self.refresh_scores()
 
     # ─────────────────────────────────────────────────────────────
     #  Update
@@ -130,6 +191,10 @@ class MenuState:
 
         if self._sub == "main":
             self._draw_main()
+        elif self._sub == "name":
+            self._draw_name_input()
+        elif self._sub == "scores":
+            self._draw_scores()
         else:
             self._draw_credits()
 
@@ -192,8 +257,8 @@ class MenuState:
         self._draw_separator(sep_y)
 
         # Opções
-        start_y = sep_y + 54
-        spacing = 58
+        start_y = sep_y + 46
+        spacing = 50
         for i, (label, color) in enumerate(zip(self._options, self._colors)):
             self._draw_option(f"[ {label} ]", color, cx,
                               start_y + i * spacing, selected=(i == self._sel))
@@ -201,6 +266,12 @@ class MenuState:
         # Mini-personagem animado
         sel_y = start_y + self._sel * spacing
         self._draw_mini_player(cx - 190, sel_y)
+
+        # Jogador atual (nome que será salvo na pontuação)
+        if self.player_name:
+            who = self._font_small.render(
+                f"JOGADOR:  {self.player_name}", True, self.C_GREEN)
+            self.screen.blit(who, who.get_rect(center=(cx, self.height - 40)))
 
         # Rodapé
         footer = self._font_small.render(
@@ -247,15 +318,14 @@ class MenuState:
             pygame.draw.rect(self.screen, self.C_CYAN, (cx + dx - 3, y - 3, 6, 6))
 
     # ─────────────────────────────────────────────────────────────
-    #  Tela de Créditos
+    #  Painel (base das telas de nome / pontuações / créditos)
     # ─────────────────────────────────────────────────────────────
-    def _draw_credits(self):
+    def _draw_panel(self, pw, ph, title):
         cx, cy = self.width // 2, self.height // 2
 
-        pw, ph = 440, 310
-        panel  = pygame.Surface((pw, ph), pygame.SRCALPHA)
+        panel = pygame.Surface((pw, ph), pygame.SRCALPHA)
         panel.fill((10, 10, 25, 230))
-        prect  = panel.get_rect(center=(cx, cy))
+        prect = panel.get_rect(center=(cx, cy))
         self.screen.blit(panel, prect)
 
         pygame.draw.rect(self.screen, self.C_PLATFORM, prect, 2)
@@ -266,9 +336,142 @@ class MenuState:
             pygame.draw.rect(self.screen, self.C_YELLOW,
                              (corner[0] - 4, corner[1] - 4, 8, 8))
 
-        self._blit_shadow("── CRÉDITOS ──", self._font_option,
+        self._blit_shadow(f"── {title} ──", self._font_option,
                           cx, prect.top + 34,
                           self.C_YELLOW, (80, 60, 0), shadow_offset=2)
+        return prect
+
+    # ─────────────────────────────────────────────────────────────
+    #  Tela de Nome do Jogador
+    # ─────────────────────────────────────────────────────────────
+    def _draw_name_input(self):
+        cx = self.width // 2
+        prect = self._draw_panel(460, 230, "QUEM ESTÁ JOGANDO?")
+
+        hint = self._font_small.render(
+            "O nome é salvo junto com a sua pontuação", True, self.C_DIM)
+        self.screen.blit(hint, hint.get_rect(center=(cx, prect.top + 72)))
+
+        # caixa de digitação
+        box = pygame.Rect(0, 0, 340, 52)
+        box.center = (cx, prect.top + 124)
+        pygame.draw.rect(self.screen, (5, 5, 15), box)
+        pygame.draw.rect(self.screen, self.C_GREEN, box, 2)
+
+        shown = self._name_buf or ""
+        text  = self._font_option.render(shown, True, self.C_WHITE)
+        trect = text.get_rect(midleft=(box.left + 14, box.centery))
+        self.screen.blit(text, trect)
+
+        # cursor piscando
+        if self._blink and len(shown) < self.MAX_NAME_LEN:
+            cur_x = trect.right + 3
+            pygame.draw.rect(self.screen, self.C_GREEN,
+                             (cur_x, box.centery - 13, 12, 26))
+
+        count = self._font_small.render(
+            f"{len(shown)}/{self.MAX_NAME_LEN}", True, self.C_DIM)
+        self.screen.blit(count, count.get_rect(midright=(box.right - 10,
+                                                        box.bottom + 14)))
+
+        if not shown:
+            empty = self._font_small.render(
+                f"vazio = {Scoreboard.DEFAULT_NAME}", True, self.C_DIM)
+            self.screen.blit(empty, empty.get_rect(midleft=(box.left,
+                                                            box.bottom + 14)))
+
+        go_color = self.C_ORANGE if self._blink else self.C_DIM
+        go = self._font_small.render("[ ENTER — COMEÇAR ]   [ ESC — VOLTAR ]",
+                                     True, go_color)
+        self.screen.blit(go, go.get_rect(center=(cx, prect.bottom - 26)))
+
+    # ─────────────────────────────────────────────────────────────
+    #  Tela de Histórico de Pontuações
+    # ─────────────────────────────────────────────────────────────
+    def _draw_scores(self):
+        cx = self.width // 2
+        prect = self._draw_panel(620, 420, "PONTUAÇÕES")
+
+        # cabeçalho da tabela
+        left  = prect.left + 34
+        right = prect.right - 34
+        head_y = prect.top + 74
+        cols = [
+            ("#",     left,        "left"),
+            ("NOME",  left + 46,   "left"),
+            ("SCORE", left + 250,  "right"),
+            ("FASE",  left + 330,  "right"),
+            ("QUANDO", right,      "right"),
+        ]
+        for label, x, align in cols:
+            s = self._font_small.render(label, True, self.C_DIM)
+            rect = s.get_rect()
+            if align == "right":
+                rect.topright = (x, head_y)
+            else:
+                rect.topleft = (x, head_y)
+            self.screen.blit(s, rect)
+
+        line_y = head_y + 22
+        pygame.draw.line(self.screen, self.C_DIM, (left, line_y), (right, line_y), 1)
+
+        if not self._scores:
+            empty = self._font_small.render(
+                "Nenhuma partida registrada ainda.", True, self.C_WHITE)
+            self.screen.blit(empty, empty.get_rect(center=(cx, line_y + 60)))
+            hint = self._font_small.render(
+                "Jogue uma partida para aparecer aqui!", True, self.C_DIM)
+            self.screen.blit(hint, hint.get_rect(center=(cx, line_y + 84)))
+        else:
+            row_y = line_y + 16
+            medals = {0: self.C_YELLOW, 1: (200, 200, 210), 2: (205, 127, 50)}
+            for i, entry in enumerate(self._scores):
+                color = medals.get(i, self.C_WHITE)
+
+                # destaque da linha do pódio
+                if i < 3:
+                    hl = pygame.Surface((right - left, 24), pygame.SRCALPHA)
+                    hl.fill((*color, 20))
+                    self.screen.blit(hl, (left, row_y - 3))
+
+                status = entry.get("status", "")
+                name   = str(entry.get("name", "?"))[:self.MAX_NAME_LEN]
+                values = [
+                    (f"{i + 1}",                 left,       "left",  color,          self._font_score),
+                    (name,                       left + 46,  "left",  color,          self._font_score),
+                    (f"{entry.get('score', 0)}", left + 250, "right", self.C_YELLOW_S, self._font_score),
+                    (f"{entry.get('level', 1)}", left + 330, "right", self.C_CYAN,     self._font_score),
+                    (str(entry.get("date", "")), right,      "right", self.C_DIM,      self._font_small),
+                ]
+                for text, x, align, col, font in values:
+                    s = font.render(text, True, col)
+                    rect = s.get_rect()
+                    if align == "right":
+                        rect.topright = (x, row_y)
+                    else:
+                        rect.topleft = (x, row_y)
+                    self.screen.blit(s, rect)
+
+                # marcador de como a partida terminou
+                if status:
+                    scol = (self.C_GREEN if status == Scoreboard.STATUS_WIN
+                            else self.C_RED if status == Scoreboard.STATUS_LOSS
+                            else self.C_DIM)
+                    pygame.draw.rect(self.screen, scol,
+                                     (left + 350, row_y + 6, 8, 8))
+
+                row_y += 26
+
+        back_color = self.C_ORANGE if self._blink else self.C_DIM
+        back = self._font_small.render("[ ESC / ENTER  —  VOLTAR ]", True, back_color)
+        self.screen.blit(back, back.get_rect(center=(cx, prect.bottom - 24)))
+
+    # ─────────────────────────────────────────────────────────────
+    #  Tela de Créditos
+    # ─────────────────────────────────────────────────────────────
+    def _draw_credits(self):
+        cx = self.width // 2
+        prect = self._draw_panel(440, 310, "CRÉDITOS")
 
         lines = [
             ("DESENVOLVIDO POR",       self.C_DIM),

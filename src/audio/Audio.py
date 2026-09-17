@@ -81,6 +81,24 @@ class AudioManager:
         except Exception:
             pass
 
+    def pause_music(self) -> None:
+        """Pausa a musica sem perder a posicao (menu de pausa)."""
+        if not self.enabled or not self._music_playing:
+            return
+        try:
+            pygame.mixer.music.pause()
+        except Exception:
+            pass
+
+    def unpause_music(self) -> None:
+        """Retoma a musica exatamente de onde parou."""
+        if not self.enabled or not self._music_playing:
+            return
+        try:
+            pygame.mixer.music.unpause()
+        except Exception:
+            pass
+
     def stop_music(self) -> None:
         if not self.enabled or not self._music_playing:
             return

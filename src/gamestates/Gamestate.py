@@ -3,6 +3,7 @@ from enum import Enum, auto
 
 class State(Enum):
     PLAYING         = auto()   # jogando a fase normalmente
+    PAUSED          = auto()   # menu de pausa — fase congelada, volta de onde parou
     CHECKPOINT      = auto()   # tela de loja no checkpoint
     LEVEL_CLEAR     = auto()   # animação/tela de fase concluída
     GAME_OVER       = auto()   # morreu — regenera mapa mas mantém coins/arma
@@ -21,6 +22,10 @@ class Gamestate:
         return self.state == State.PLAYING
 
     @property
+    def paused(self):
+        return self.state == State.PAUSED
+
+    @property
     def at_checkpoint(self):
         return self.state == State.CHECKPOINT
 
@@ -37,6 +42,20 @@ class Gamestate:
         return self.state == State.LEVEL_CLEAR
 
     # ── transições ─────────────────────────────────────────────
+    def pause(self) -> bool:
+        """Congela a fase. Só pausa se estiver realmente jogando."""
+        if self.state != State.PLAYING:
+            return False
+        self.state = State.PAUSED
+        return True
+
+    def resume(self) -> bool:
+        """Volta exatamente de onde parou."""
+        if self.state != State.PAUSED:
+            return False
+        self.state = State.PLAYING
+        return True
+
     def enter_checkpoint(self, kind: str):
         """kind = 'mid' ou 'end'"""
         self.state = State.CHECKPOINT
