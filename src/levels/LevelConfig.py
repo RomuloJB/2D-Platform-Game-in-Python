@@ -4,36 +4,31 @@ from typing import Tuple
 
 @dataclass
 class LevelConfig:
-    level_num: int          # 1-5
+    level_num: int
     name: str
-    length_chunks: int      # quantos chunks até o portal de fim
-    mid_chunk: int          # chunk onde aparece o checkpoint do meio
+    length_chunks: int
+    mid_chunk: int          
 
-    # Dificuldade
     enemy_speed_mult: float
-    enemy_hp: int           # hp base dos inimigos
-    spike_chance: float     # probabilidade de spike em plataformas
-    moving_chance: float    # probabilidade de plataforma móvel
+    enemy_hp: int
+    spike_chance: float
+    moving_chance: float
     enemy_spawn_chance: float
-    gap_max: int            # largura máxima dos buracos (em tiles)
-    num_gaps_max: int       # máximo de buracos por chunk
+    gap_max: int
+    num_gaps_max: int
 
-    # Visual (cores do background)
     bg_top: Tuple[int, int, int]
     bg_btm: Tuple[int, int, int]
     ground_top: Tuple[int, int, int]
     ground_btm: Tuple[int, int, int]
 
-    # Tema das plataformas flutuantes: "grass" | "wood" | "metal" | "sand".
-    # Trocar aqui muda o visual das plataformas daquela fase.
     platform_theme: str = "grass"
 
-    # Imagem de fundo (parallax com loop). None = usa o fundo procedural
-    # (gradiente + estrelas + montanhas).
     bg_image: str = None
 
+ACTIVE_LEVELS = 5
 
-LEVELS: list[LevelConfig] = [
+_ALL_LEVELS: list[LevelConfig] = [
     LevelConfig(
         level_num=1,
         name="Floresta",
@@ -128,3 +123,6 @@ LEVELS: list[LevelConfig] = [
         platform_theme="metal",
     ),
 ]
+
+LEVELS: list[LevelConfig] = _ALL_LEVELS[:ACTIVE_LEVELS]
+MAX_LEVEL = len(LEVELS)

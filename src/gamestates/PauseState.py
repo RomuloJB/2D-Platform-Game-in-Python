@@ -19,7 +19,6 @@ from src.utilz.Constants import SCREEN_W, SCREEN_H
 
 
 class PauseState:
-    # mesma paleta do MenuState, para o visual bater
     C_WHITE    = (220, 220, 200)
     C_YELLOW   = (255, 215,   0)
     C_CYAN     = (110, 170, 220)
@@ -50,9 +49,6 @@ class PauseState:
             self._font_opt   = pygame.font.Font(None, 30)
             self._font_small = pygame.font.Font(None, 20)
 
-    # ─────────────────────────────────────────────────────────────
-    #  Entrada
-    # ─────────────────────────────────────────────────────────────
     def handle_event(self, event: pygame.event.Event):
         if event.type != pygame.KEYDOWN:
             return None
@@ -64,19 +60,14 @@ class PauseState:
         elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
             return self.OPTIONS[self._sel][1]
         elif event.key in (pygame.K_ESCAPE, pygame.K_p):
-            # ESC/P de novo volta direto para o jogo
             return "resume"
 
         return None
 
-    # ─────────────────────────────────────────────────────────────
     def update(self):
         self._tick += 1
         self._blink = (self._tick % 50) < 25
 
-    # ─────────────────────────────────────────────────────────────
-    #  Desenho (sobre o frame congelado da fase)
-    # ─────────────────────────────────────────────────────────────
     def draw(self, surf, player=None, level_num=1, level_name=""):
         ov = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
         ov.fill((0, 0, 0, 170))
@@ -96,13 +87,11 @@ class PauseState:
             pygame.draw.rect(surf, self.C_YELLOW,
                              (corner[0] - 4, corner[1] - 4, 8, 8))
 
-        # título com leve pulsação
         pulse = 1.0 + 0.03 * math.sin(self._tick * 0.07)
         self._blit_shadow(surf, "PAUSADO", self._font_title,
                           cx, prect.top + 42,
                           self.C_YELLOW, self.C_ORANGE, 3, pulse)
 
-        # linha de status da partida
         info_y = prect.top + 78
         if player is not None:
             name = getattr(player, "name", "") or "JOGADOR"
@@ -117,12 +106,10 @@ class PauseState:
                 surf.blit(s, s.get_rect(center=(cx, info_y)))
                 info_y += 18
 
-        # separador
         sep_y = info_y + 8
         pygame.draw.line(surf, self.C_DIM,
                          (prect.left + 40, sep_y), (prect.right - 40, sep_y), 1)
 
-        # opções
         start_y = sep_y + 34
         spacing = 44
         for i, (label, _action, color) in enumerate(self.OPTIONS):

@@ -29,7 +29,6 @@ import os
 import pygame
 
 
-# Cache de frames por (path, frame_h_alvo). { chave: [Surface, ...] }
 _sheet_cache = {}
 
 
@@ -82,11 +81,11 @@ class Animator:
         """
         self.scale = scale
         self.clips = {}
-        self.current = None            # nome do clip atual
-        self.time = 0.0                # tempo acumulado no clip atual
+        self.current = None
+        self.time = 0.0
         self.frame_index = 0
-        self.finished = False          # True quando um clip nao-loop terminou
-        self._scaled_cache = {}        # (nome, idx, facing) -> Surface escalada
+        self.finished = False
+        self._scaled_cache = {}
 
     @property
     def ok(self):
@@ -128,7 +127,7 @@ class Animator:
             elif clip.loop:
                 self.frame_index = 0
             else:
-                self.finished = True          # trava no ultimo frame
+                self.finished = True
                 break
 
     def _current_surface(self, facing):

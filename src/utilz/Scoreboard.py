@@ -23,29 +23,22 @@ import json
 import os
 from datetime import datetime
 
-# Raiz do projeto (…/src/utilz/Scoreboard.py -> sobe 3 níveis). Assim o
-# histórico é sempre gravado no mesmo lugar, não importa de qual pasta o
-# jogo foi executado.
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
 
 SCORES_DIR  = os.path.join(_PROJECT_ROOT, "data")
 SCORES_PATH = os.path.join(SCORES_DIR, "scores.json")
 
-MAX_ENTRIES  = 50          # guarda só as 50 melhores pontuações
+MAX_ENTRIES  = 50
 MAX_NAME_LEN = 12
 DEFAULT_NAME = "JOGADOR"
 
-# status possíveis de uma partida
 STATUS_PLAYING = "EM JOGO"
 STATUS_WIN     = "VITÓRIA"
 STATUS_LOSS    = "DERROTA"
 STATUS_QUIT    = "SAIU"
 
 
-# ─────────────────────────────────────────────────────────────────
-#  Leitura
-# ─────────────────────────────────────────────────────────────────
 def load_scores() -> list:
     """Lê o arquivo e devolve a lista de registros (vazia se não houver)."""
     if not os.path.exists(SCORES_PATH):
@@ -81,9 +74,6 @@ def sanitize_name(name: str) -> str:
     return clean or DEFAULT_NAME
 
 
-# ─────────────────────────────────────────────────────────────────
-#  Escrita
-# ─────────────────────────────────────────────────────────────────
 def _write(scores: list) -> bool:
     """Grava a lista já ordenada e cortada em MAX_ENTRIES."""
     scores = sorted(scores, key=lambda e: e.get("score", 0),

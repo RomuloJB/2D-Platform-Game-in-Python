@@ -14,18 +14,17 @@ class MenuState:
     'scores' → histórico de pontuações dos jogadores
     """
 
-    # Paleta extraída de Constants.py
     C_BG_TOP   = (10,  10,  30)
     C_BG_BTM   = (20,  20,  60)
     C_WHITE    = (220, 220, 200)
-    C_YELLOW   = (255, 215,   0)   # C_COIN
-    C_YELLOW_S = (255, 255, 150)   # C_COIN_S
-    C_CYAN     = (110, 170, 220)   # C_PLAT_TOP
-    C_GREEN    = ( 60, 220, 120)   # C_PLAYER
-    C_RED      = (220,  60,  60)   # C_ENEMY
-    C_ORANGE   = (255, 140,   0)   # C_BULLET
+    C_YELLOW   = (255, 215,   0)
+    C_YELLOW_S = (255, 255, 150)
+    C_CYAN     = (110, 170, 220)
+    C_GREEN    = ( 60, 220, 120)
+    C_RED      = (220,  60,  60)
+    C_ORANGE   = (255, 140,   0)
     C_DIM      = ( 80,  80, 100)
-    C_PLATFORM = ( 70, 130, 180)   # C_PLATFORM
+    C_PLATFORM = ( 70, 130, 180)
 
     OPTION_PLAY    = 0
     OPTION_SCORES  = 1
@@ -38,18 +37,15 @@ class MenuState:
         self.screen = screen
         self.width  = screen.get_width()
         self.height = screen.get_height()
-        self._sub   = "main"   # 'main' | 'name' | 'scores' | 'credits'
+        self._sub   = "main"
         self._sel   = 0
         self._tick  = 0
         self._blink = True
 
-        # Nome do jogador — é ele que vai gravado no histórico de scores.
-        # Começa com o nome da última partida registrada.
         self.player_name = Scoreboard.last_player_name()
         self._name_buf   = self.player_name
         self._scores     = []
 
-        # Fontes monospace — combinam com pixel art
         self._font_title  = pygame.font.SysFont("couriernew", 56, bold=True)
         self._font_option = pygame.font.SysFont("couriernew", 30, bold=True)
         self._font_sub    = pygame.font.SysFont("couriernew", 15)
@@ -59,7 +55,6 @@ class MenuState:
         self._options = ["JOGAR", "PONTUAÇÕES", "CRÉDITOS", "SAIR"]
         self._colors  = [self.C_GREEN, self.C_YELLOW, self.C_CYAN, self.C_RED]
 
-        # Estrelas de fundo (semente fixa = sempre igual)
         import random
         rng = random.Random(7)
         self._stars = [
@@ -70,10 +65,8 @@ class MenuState:
             for _ in range(140)
         ]
 
-        # Scanlines — criadas uma vez
         self._scanlines = self._make_scanlines()
 
-        # Plataformas decorativas flutuantes no rodapé
         self._plat_data = [
             {"x":  60, "w": 180, "speed": 0.4, "y_off":  0},
             {"x": 320, "w": 140, "speed": 0.6, "y_off": 15},
@@ -81,16 +74,12 @@ class MenuState:
             {"x": 820, "w": 120, "speed": 0.5, "y_off": 20},
         ]
 
-    # ─────────────────────────────────────────────────────────────
     def _make_scanlines(self) -> pygame.Surface:
         s = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         for y in range(0, self.height, 3):
             pygame.draw.line(s, (0, 0, 0, 45), (0, y), (self.width, y))
         return s
 
-    # ─────────────────────────────────────────────────────────────
-    #  Entrada
-    # ─────────────────────────────────────────────────────────────
     def handle_event(self, event: pygame.event.Event):
         """
         Retorna:
@@ -114,7 +103,6 @@ class MenuState:
         if self._sub == "name":
             return self._handle_name_event(event)
 
-        # sub == "main"
         if event.key in (pygame.K_UP, pygame.K_w):
             self._sel = (self._sel - 1) % len(self._options)
         elif event.key in (pygame.K_DOWN, pygame.K_s):
@@ -122,14 +110,12 @@ class MenuState:
         elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
             return self._confirm()
         elif event.key == pygame.K_ESCAPE:
-            # ESC no menu apenas move o cursor para "SAIR"
             self._sel = self.OPTION_QUIT
 
         return None
 
     def _confirm(self):
         if self._sel == self.OPTION_PLAY:
-            # antes de jogar, pede o nome que será salvo na pontuação
             self._name_buf = self.player_name
             self._sub = "name"
         if self._sel == self.OPTION_SCORES:
@@ -163,7 +149,6 @@ class MenuState:
                 self._name_buf += char.upper()
         return None
 
-    # ─────────────────────────────────────────────────────────────
     def refresh_scores(self):
         """Recarrega o histórico do disco (usado ao abrir a tela)."""
         self._scores = Scoreboard.top_scores(10)
@@ -174,16 +159,10 @@ class MenuState:
         self._sel = self.OPTION_PLAY
         self.refresh_scores()
 
-    # ─────────────────────────────────────────────────────────────
-    #  Update
-    # ─────────────────────────────────────────────────────────────
     def update(self):
         self._tick += 1
         self._blink = (self._tick % 50) < 25
 
-    # ─────────────────────────────────────────────────────────────
-    #  Draw
-    # ─────────────────────────────────────────────────────────────
     def draw(self):
         self._draw_bg_gradient()
         self._draw_stars()
@@ -200,9 +179,6 @@ class MenuState:
 
         self.screen.blit(self._scanlines, (0, 0))
 
-    # ─────────────────────────────────────────────────────────────
-    #  Fundo
-    # ─────────────────────────────────────────────────────────────
     def _draw_bg_gradient(self):
         """Gradiente idêntico ao draw_background() do Hud.py."""
         for y in range(self.height):
@@ -232,14 +208,10 @@ class MenuState:
             pygame.draw.rect(self.screen, self.C_CYAN,     (x, y, w, 3))
             pygame.draw.rect(self.screen, (40, 80, 120),   (x, y + h - 2, w, 2))
 
-    # ─────────────────────────────────────────────────────────────
-    #  Tela Principal
-    # ─────────────────────────────────────────────────────────────
     def _draw_main(self):
         cx    = self.width // 2
         pulse = 1.0 + 0.035 * math.sin(self._tick * 0.07)
 
-        # Título
         title_y = self.height // 5
         self._blit_shadow(
             "2D PLATFORM GAME",
@@ -248,7 +220,6 @@ class MenuState:
             shadow_offset=4, scale=pulse,
         )
 
-        # Subtítulo piscante
         if self._blink:
             sub = self._font_sub.render("── USE AS SETAS E ENTER ──", True, self.C_DIM)
             self.screen.blit(sub, sub.get_rect(center=(cx, title_y + 60)))
@@ -256,24 +227,20 @@ class MenuState:
         sep_y = title_y + 88
         self._draw_separator(sep_y)
 
-        # Opções
         start_y = sep_y + 46
         spacing = 50
         for i, (label, color) in enumerate(zip(self._options, self._colors)):
             self._draw_option(f"[ {label} ]", color, cx,
                               start_y + i * spacing, selected=(i == self._sel))
 
-        # Mini-personagem animado
         sel_y = start_y + self._sel * spacing
         self._draw_mini_player(cx - 190, sel_y)
 
-        # Jogador atual (nome que será salvo na pontuação)
         if self.player_name:
             who = self._font_small.render(
                 f"JOGADOR:  {self.player_name}", True, self.C_GREEN)
             self.screen.blit(who, who.get_rect(center=(cx, self.height - 40)))
 
-        # Rodapé
         footer = self._font_small.render(
             "↑↓  NAVEGAR     ENTER  CONFIRMAR     ESC  SAIR",
             True, self.C_DIM,
@@ -317,9 +284,6 @@ class MenuState:
         for dx in (-half, half):
             pygame.draw.rect(self.screen, self.C_CYAN, (cx + dx - 3, y - 3, 6, 6))
 
-    # ─────────────────────────────────────────────────────────────
-    #  Painel (base das telas de nome / pontuações / créditos)
-    # ─────────────────────────────────────────────────────────────
     def _draw_panel(self, pw, ph, title):
         cx, cy = self.width // 2, self.height // 2
 
@@ -341,9 +305,6 @@ class MenuState:
                           self.C_YELLOW, (80, 60, 0), shadow_offset=2)
         return prect
 
-    # ─────────────────────────────────────────────────────────────
-    #  Tela de Nome do Jogador
-    # ─────────────────────────────────────────────────────────────
     def _draw_name_input(self):
         cx = self.width // 2
         prect = self._draw_panel(460, 230, "QUEM ESTÁ JOGANDO?")
@@ -352,7 +313,6 @@ class MenuState:
             "O nome é salvo junto com a sua pontuação", True, self.C_DIM)
         self.screen.blit(hint, hint.get_rect(center=(cx, prect.top + 72)))
 
-        # caixa de digitação
         box = pygame.Rect(0, 0, 340, 52)
         box.center = (cx, prect.top + 124)
         pygame.draw.rect(self.screen, (5, 5, 15), box)
@@ -363,7 +323,6 @@ class MenuState:
         trect = text.get_rect(midleft=(box.left + 14, box.centery))
         self.screen.blit(text, trect)
 
-        # cursor piscando
         if self._blink and len(shown) < self.MAX_NAME_LEN:
             cur_x = trect.right + 3
             pygame.draw.rect(self.screen, self.C_GREEN,
@@ -385,14 +344,10 @@ class MenuState:
                                      True, go_color)
         self.screen.blit(go, go.get_rect(center=(cx, prect.bottom - 26)))
 
-    # ─────────────────────────────────────────────────────────────
-    #  Tela de Histórico de Pontuações
-    # ─────────────────────────────────────────────────────────────
     def _draw_scores(self):
         cx = self.width // 2
         prect = self._draw_panel(620, 420, "PONTUAÇÕES")
 
-        # cabeçalho da tabela
         left  = prect.left + 34
         right = prect.right - 34
         head_y = prect.top + 74
@@ -428,7 +383,6 @@ class MenuState:
             for i, entry in enumerate(self._scores):
                 color = medals.get(i, self.C_WHITE)
 
-                # destaque da linha do pódio
                 if i < 3:
                     hl = pygame.Surface((right - left, 24), pygame.SRCALPHA)
                     hl.fill((*color, 20))
@@ -452,7 +406,6 @@ class MenuState:
                         rect.topleft = (x, row_y)
                     self.screen.blit(s, rect)
 
-                # marcador de como a partida terminou
                 if status:
                     scol = (self.C_GREEN if status == Scoreboard.STATUS_WIN
                             else self.C_RED if status == Scoreboard.STATUS_LOSS
@@ -466,9 +419,6 @@ class MenuState:
         back = self._font_small.render("[ ESC / ENTER  —  VOLTAR ]", True, back_color)
         self.screen.blit(back, back.get_rect(center=(cx, prect.bottom - 24)))
 
-    # ─────────────────────────────────────────────────────────────
-    #  Tela de Créditos
-    # ─────────────────────────────────────────────────────────────
     def _draw_credits(self):
         cx = self.width // 2
         prect = self._draw_panel(440, 310, "CRÉDITOS")
@@ -500,9 +450,6 @@ class MenuState:
         back = self._font_small.render("[ ESC / ENTER  —  VOLTAR ]", True, back_color)
         self.screen.blit(back, back.get_rect(center=(cx, prect.bottom - 22)))
 
-    # ─────────────────────────────────────────────────────────────
-    #  Helper
-    # ─────────────────────────────────────────────────────────────
     def _blit_shadow(self, text, font, cx, cy, color,
                      shadow_color, shadow_offset=3, scale=1.0):
         surf = font.render(text, True, color)

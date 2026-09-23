@@ -24,7 +24,6 @@ import os
 import pygame
 
 
-# tema -> (arquivo_seguro, arquivo_hazard)
 _THEME_FILES = {
     "metal": ("Pad_01_1.png", "Pad_01_2.png"),
     "wood":  ("Pad_02_1.png", "Pad_02_2.png"),
@@ -34,12 +33,10 @@ _THEME_FILES = {
 
 _BASE_DIR = os.path.join("src", "ui", "platforms")
 
-# Fracao da largura da sprite usada para cada ponta no 3-slice.
 _EDGE_FRAC = 0.28
 
-# Caches
-_raw_cache = {}        # path -> Surface original (ou None se falhou)
-_render_cache = {}     # (theme, variant, w, h) -> Surface renderizada
+_raw_cache = {}
+_render_cache = {}
 
 
 def _load_raw(path):
@@ -78,7 +75,6 @@ def render(theme, variant, width, height):
 
     sw, sh = sprite.get_size()
 
-    # 1) escala a sprite inteira para a altura alvo (preserva proporcao vertical)
     scale = height / sh
     scaled_w = max(2, int(sw * scale))
     sprite_h = pygame.transform.smoothscale(sprite, (scaled_w, height))
@@ -86,7 +82,6 @@ def render(theme, variant, width, height):
     out = pygame.Surface((width, height), pygame.SRCALPHA)
 
     if width >= scaled_w:
-        # 2a) alvo mais largo que a sprite: 3-slice esticando o miolo
         edge = int(scaled_w * _EDGE_FRAC)
         edge = max(1, min(edge, width // 2))
         left = sprite_h.subsurface(pygame.Rect(0, 0, edge, height))
@@ -99,7 +94,6 @@ def render(theme, variant, width, height):
         out.blit(left, (0, 0))
         out.blit(right, (width - edge, 0))
     else:
-        # 2b) alvo mais estreito: encolhe a sprite inteira para caber
         squeezed = pygame.transform.smoothscale(sprite_h, (width, height))
         out.blit(squeezed, (0, 0))
 
