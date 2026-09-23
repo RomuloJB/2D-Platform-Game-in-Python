@@ -26,12 +26,8 @@ from src.core import Hud
 from src.audio.Audio import AudioManager
 from src.utilz import Scoreboard
 
-# Caminho da musica de fundo tocada enquanto o jogo esta rodando (fora do menu).
 MUSIC_THEME = "res/audio/music/theme.wav"
 
-# De quantos em quantos segundos a pontuação da partida em andamento é
-# gravada no histórico (se o score mudou). Assim nada se perde se o jogo
-# for fechado no meio da fase.
 SCORE_AUTOSAVE = 2.0
 
 
@@ -58,7 +54,7 @@ class Game:
 
         self.in_menu = True
         self.menu = MenuState(self.screen)
-        self.pause = None            # PauseState enquanto a fase está congelada
+        self.pause = None
 
         self.gs = None
         self.player = None
@@ -68,10 +64,9 @@ class Game:
         self.damage_flash = 0
         self.prev_health = 0
 
-        # Histórico de pontuação: nome do jogador e id do registro da partida
         self.player_name = Scoreboard.DEFAULT_NAME
         self._run_id = None
-        self._saved_score = None      # último score já gravado
+        self._saved_score = None
         self._autosave_timer = 0.0
 
     def _spawn(self):
@@ -82,21 +77,18 @@ class Game:
         x, y = self._spawn()
         self.player = Player(x, y)
         self.player.name = self.player_name
-        self._run_id = None          # partida nova = registro novo no histórico
+        self._run_id = None
         self._saved_score = None
         self._autosave_timer = 0.0
         self.pause = None
         self._load_level(self.gs.current_level)
 
-    # ─────────────────────────────────────────────────────────────
-    #  Histórico de pontuação
-    # ─────────────────────────────────────────────────────────────
     def _record_run(self, status):
         """Cria/atualiza o registro da partida atual — um registro por partida."""
         if self.gs is None or self.player is None:
             return
         if self._run_id is None and self.player.score <= 0:
-            return   # partida sem pontos ainda: não polui o histórico
+            return
         run_id = Scoreboard.save_run(
             self._run_id, self.player_name, self.player.score,
             coins=self.player.coins, level=self.gs.current_level, status=status)
@@ -117,12 +109,9 @@ class Game:
     def _end_run(self):
         """Fecha a partida ao sair para o menu / fechar o jogo."""
         if self.gs is None or self.gs.game_over or self.gs.victory:
-            return   # vitória/derrota já registraram o resultado final
+            return
         self._record_run(Scoreboard.STATUS_QUIT)
 
-    # ─────────────────────────────────────────────────────────────
-    #  Pausa
-    # ─────────────────────────────────────────────────────────────
     def _open_pause(self):
         if not self.gs.pause():
             return
@@ -174,7 +163,6 @@ class Game:
                     self.running = False
                 continue
 
-            # Menu de pausa — congela a fase e devolve o jogo de onde parou
             if self.gs.paused and self.pause is not None:
                 action = self.pause.handle_event(event)
                 if action == "resume":
@@ -232,7 +220,6 @@ class Game:
             self.menu.update()
             return
 
-        # Pausado: só a animação do menu roda — o mundo fica congelado
         if self.gs.paused:
             if self.pause is not None:
                 self.pause.update()
@@ -245,7 +232,6 @@ class Game:
             self.camera.update(self.player, dt)
             self.world.update(dt, self.camera.x)
 
-            # caiu no vazio
             if self.player.rect.top > SCREEN_H + 200:
                 self.player.alive = False
 
@@ -263,7 +249,6 @@ class Game:
                 portal.active = False
                 self.shop = Shop(self.gs.current_level, portal.kind)
                 self.gs.enter_checkpoint(portal.kind)
-                # checkpoint/fim de fase: registra o progresso na hora
                 self._record_run(Scoreboard.STATUS_PLAYING)
 
             if self.banner_timer > 0:

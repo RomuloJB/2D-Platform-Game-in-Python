@@ -17,16 +17,16 @@ class Weapon:
                  max_range, spread=0, pellets=1):
         self.name = name
         self.damage = damage
-        self.bullet_speed = bullet_speed        # px/frame (convertido na hora)
-        self.cooldown_frames = cooldown         # frames
-        self.cooldown = cooldown / FRAME_RATE   # segundos (usado pelo Player)
+        self.bullet_speed = bullet_speed
+        self.cooldown_frames = cooldown
+        self.cooldown = cooldown / FRAME_RATE
         self.max_range = max_range
         self.spread = spread
         self.pellets = pellets
 
     def create_bullets(self, ox, oy, dx, dy, damage=None):
         dmg = self.damage if damage is None else damage
-        speed = self.bullet_speed * FRAME_RATE   # px/frame -> px/s
+        speed = self.bullet_speed * FRAME_RATE
         dist = math.hypot(dx, dy) or 1
         base_vx = dx / dist * speed
         base_vy = dy / dist * speed

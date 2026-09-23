@@ -19,7 +19,7 @@ class Platform(GameObject):
         category = Layer.HAZARD if kind == "spike" else Layer.PLATFORM
         super().__init__(x, y, w, h, category=category, mask=Layer.NONE)
         self.kind = kind
-        self.theme = theme          # "grass"|"wood"|"metal"|"sand" ou None
+        self.theme = theme
         self.move_range = 0.0
         self.move_speed = 0.0
         self.origin_x = float(x)
@@ -34,8 +34,6 @@ class Platform(GameObject):
             )
             self.sync_rect()
 
-    # Altura visual da plataforma tematica (o hitbox continua fino; a arte
-    # desce por baixo para mostrar o "corpo" da ilha flutuante).
     _SPRITE_DRAW_H = 74
 
     def draw(self, surf, cam_x, cam_y):
@@ -45,17 +43,13 @@ class Platform(GameObject):
         if r.right < -10 or r.left > SCREEN_W + 10:
             return
 
-        # --- caminho novo: sprite tematica (so plataformas flutuantes) ---
         if self.theme and self.kind != "ground":
             variant = "hazard" if self.kind == "spike" else "safe"
             img = PS.render(self.theme, variant, self.rect.w, self._SPRITE_DRAW_H)
             if img is not None:
-                # topo da sprite alinhado ao topo do hitbox; corpo pende p/ baixo
                 surf.blit(img, (int(rx), int(ry)))
                 return
-            # se falhou, cai no desenho vetorial abaixo
 
-        # --- fallback: desenho vetorial original ---
         if self.kind == "spike":
             base = pygame.Rect(rx, ry + 10, self.rect.w, self.rect.h - 10)
             pygame.draw.rect(surf, C_PLATFORM, base)

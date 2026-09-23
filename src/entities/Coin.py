@@ -21,19 +21,14 @@ from src.utilz.Constants import SCREEN_W, Layer, C_COIN, C_COIN_S
 class Coin(GameObject):
     R = 8
 
-    # Tamanho em tela da sprite (diametro ~ 2*R, com uma folga p/ dar presenca).
     SPRITE_SIZE = 24
 
-    # Velocidade da animacao de rotacao (frames por segundo).
     ANIM_FPS = 5
 
-    # Tipos de moeda -> indice do grupo (n-1) % 3
     KIND_NUMBER = 0
     KIND_HEART = 1
     KIND_STAR = 2
 
-    # Cache de frames por tipo, carregado uma unica vez e compartilhado por
-    # todas as instancias. { kind: [Surface, ...] }  (10 frames cada)
     _frames_by_kind = None
 
     @classmethod
@@ -67,20 +62,17 @@ class Coin(GameObject):
         self.base_y = float(y)
         self.center_x = float(x)
         self.collected = False
-        self.anim = random.uniform(0, math.pi * 2)     # fase do bob (flutuacao)
+        self.anim = random.uniform(0, math.pi * 2)
 
         self._load_frames()
 
-        # Tipo da moeda: aleatorio se nao for especificado.
         if kind is None:
             kind = random.choice((self.KIND_NUMBER, self.KIND_HEART, self.KIND_STAR))
         self.kind = kind
 
-        # Estado da animacao de rotacao.
-        self.frame_time = random.uniform(0, 1.0)       # dessincroniza as moedas
+        self.frame_time = random.uniform(0, 1.0)
         self.frame_index = 0
 
-    # compat: alguns lugares antigos liam coin.x
     @property
     def x(self):
         return self.center_x
@@ -91,14 +83,12 @@ class Coin(GameObject):
         return self._frames_by_kind.get(self.kind, [])
 
     def update(self, dt: float, world=None) -> None:
-        # Flutuacao vertical (bob).
         self.anim += 4.2 * dt
         bob = math.sin(self.anim) * 4
         self.position.x = self.center_x - self.R
         self.position.y = self.base_y + bob - self.R
         self.sync_rect()
 
-        # Avanca a animacao de rotacao.
         frames = self._frames()
         if frames:
             self.frame_time += dt
@@ -119,6 +109,5 @@ class Coin(GameObject):
             rect = img.get_rect(center=(sx, sy))
             surf.blit(img, rect)
         else:
-            # Fallback: mantem o circulo estatico caso as sprites nao carreguem.
             pygame.draw.circle(surf, C_COIN, (sx, sy), self.R)
             pygame.draw.circle(surf, C_COIN_S, (sx - 2, sy - 2), 3)

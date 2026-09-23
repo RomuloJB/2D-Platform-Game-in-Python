@@ -11,51 +11,44 @@ Conversão (o jogo antigo era calibrado a 60 FPS):
     por_segundo = por_frame * 60 * 60     (acelerações, ex.: gravidade)
 """
 
-# ── Tela ───────────────────────────────────────────────────────
 SCREEN_W, SCREEN_H = 1024, 600
 FPS = 60
 TITLE = "Plataforma 2D"
 
-# ── Mundo / chunks ─────────────────────────────────────────────
 TILE_SIZE = 40
 CHUNK_WIDTH = 20
 RENDER_CHUNKS = 4
 
-# ── Física (UNIDADES POR SEGUNDO) ──────────────────────────────
-GRAVITY = 0.6 * 60 * 60          # 2160 px/s²
-MAX_FALL = 18 * 60               # 1080 px/s
-JUMP_POWER = -14 * 60            # -840 px/s
-JUMP_HOLD_FORCE = 0.7 * 60 * 60  # força extra ao segurar o pulo
-JUMP_HOLD_TIME = 12 / 60         # segundos
+GRAVITY = 0.6 * 60 * 60
+MAX_FALL = 18 * 60
+JUMP_POWER = -14 * 60
+JUMP_HOLD_FORCE = 0.7 * 60 * 60
+JUMP_HOLD_TIME = 12 / 60
 
-PLAYER_SPEED = 5 * 60            # 300 px/s
+PLAYER_SPEED = 5 * 60
 PLAYER_ACCEL = 0.8 * 60
 PLAYER_FRICTION = 0.75
 
-COYOTE_TIME = 8 / 60             # segundos
-JUMP_BUFFER = 8 / 60             # segundos
+COYOTE_TIME = 8 / 60
+JUMP_BUFFER = 8 / 60
 
-# ── Balas ──────────────────────────────────────────────────────
-BULLET_SPEED = 14 * 60           # 840 px/s (fallback)
-BULLET_COOLDOWN = 12 / 60        # segundos
+BULLET_SPEED = 14 * 60
+BULLET_COOLDOWN = 12 / 60
 
-# fator para converter os valores "por frame" das armas em "por segundo"
 FRAME_RATE = 60
 
-# ── Categorias de colisor (bitmask) ────────────────────────────
 class Layer:
     NONE        = 0
     PLAYER      = 1 << 0
     ENEMY       = 1 << 1
     PLATFORM    = 1 << 2
-    HAZARD      = 1 << 3   # spikes
+    HAZARD      = 1 << 3
     PLAYER_SHOT = 1 << 4
     ENEMY_SHOT  = 1 << 5
-    PICKUP      = 1 << 6   # moedas
+    PICKUP      = 1 << 6
     PORTAL      = 1 << 7
     ALL         = 0xFFFF
 
-# ── Cores ──────────────────────────────────────────────────────
 C_BG_TOP    = (10,  10,  30)
 C_BG_BTM    = (20,  20,  60)
 C_PLATFORM  = (70, 130, 180)

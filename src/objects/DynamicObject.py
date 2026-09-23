@@ -31,7 +31,6 @@ class DynamicObject(GameObject):
     def move_and_collide(self, dt: float, platforms, on_hazard=None) -> None:
         """Move por velocity*dt resolvendo colisão (X depois Y)."""
 
-        # ── eixo X ────────────────────────────────────────────
         self.position.x += self.velocity.x * dt
         self.sync_rect()
         for plat in platforms:
@@ -45,10 +44,8 @@ class DynamicObject(GameObject):
                 self.velocity.x = 0
                 self.sync_position()
 
-        # ── eixo Y (swept — divide em passos pequenos) ────────
         self.on_ground = False
         dy = self.velocity.y * dt
-        # passo máximo de 8px por iteração para evitar tunneling
         step = 8.0
         remaining = abs(dy)
         direction = 1 if dy >= 0 else -1
@@ -70,11 +67,9 @@ class DynamicObject(GameObject):
                     continue
 
                 if direction > 0:
-                    # caindo — pousa em cima
                     self.rect.bottom = plat.rect.top
                     self.on_ground = True
                 else:
-                    # subindo — bate na parte de baixo
                     self.rect.top = plat.rect.bottom
 
                 self.velocity.y = 0

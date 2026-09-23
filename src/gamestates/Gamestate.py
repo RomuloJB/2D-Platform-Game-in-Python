@@ -1,22 +1,23 @@
 from enum import Enum, auto
 
+from src.levels.LevelConfig import MAX_LEVEL
+
 
 class State(Enum):
-    PLAYING         = auto()   # jogando a fase normalmente
-    PAUSED          = auto()   # menu de pausa — fase congelada, volta de onde parou
-    CHECKPOINT      = auto()   # tela de loja no checkpoint
-    LEVEL_CLEAR     = auto()   # animação/tela de fase concluída
-    GAME_OVER       = auto()   # morreu — regenera mapa mas mantém coins/arma
-    VICTORY         = auto()   # completou todas as 5 fases
+    PLAYING         = auto()
+    PAUSED          = auto()
+    CHECKPOINT      = auto()
+    LEVEL_CLEAR     = auto()
+    GAME_OVER       = auto()
+    VICTORY         = auto()
 
 
 class Gamestate:
     def __init__(self):
         self.state = State.PLAYING
-        self.current_level = 1       # 1-5
-        self.checkpoint_type = None  # "mid" ou "end"
+        self.current_level = 1
+        self.checkpoint_type = None
 
-    # ── conveniências ──────────────────────────────────────────
     @property
     def playing(self):
         return self.state == State.PLAYING
@@ -41,7 +42,6 @@ class Gamestate:
     def level_clear(self):
         return self.state == State.LEVEL_CLEAR
 
-    # ── transições ─────────────────────────────────────────────
     def pause(self) -> bool:
         """Congela a fase. Só pausa se estiver realmente jogando."""
         if self.state != State.PLAYING:
@@ -70,7 +70,7 @@ class Gamestate:
             self.checkpoint_type = None
 
     def advance_level(self):
-        if self.current_level >= 5:
+        if self.current_level >= MAX_LEVEL:
             self.state = State.VICTORY
         else:
             self.current_level += 1

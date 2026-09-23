@@ -9,8 +9,6 @@ from src.core.Background import draw_image_background
 
 
 def draw_background(surf, cam_x, cam_y, bg_top=None, bg_btm=None, bg_image=None):
-    # Se a fase tem imagem de fundo e ela carrega, usa ela (parallax + loop)
-    # e nao desenha o fundo procedural.
     if bg_image and draw_image_background(surf, cam_x, bg_image):
         return
 
@@ -42,7 +40,6 @@ def draw_hud(surf, player, distance, font, font_sm,
     hud_surf.fill((0, 0, 0, 120))
     surf.blit(hud_surf, (10, 10))
 
-    # corações
     for i in range(player.max_health):
         color = (220, 60, 60) if i < player.health else (60, 60, 80)
         heart_x = 20 + i * 28
@@ -62,7 +59,6 @@ def draw_hud(surf, player, distance, font, font_sm,
     surf.blit(dist_txt,  (270, 48))
     surf.blit(level_txt, (20, 70))
 
-    # barra de progresso da fase
     if level_length and player_x is not None:
         prog = min(1.0, max(0.0, player_x / (level_length * CHUNK_WIDTH * TILE_SIZE)))
         bar_x, bar_y, bar_w, bar_h = 10, SCREEN_H - 18, SCREEN_W - 20, 8
@@ -72,7 +68,6 @@ def draw_hud(surf, player, distance, font, font_sm,
         if filled > 0:
             pygame.draw.rect(surf, (80, 180, 255),
                 pygame.Rect(bar_x, bar_y, filled, bar_h), border_radius=4)
-        # marcador de mid-checkpoint
         mid_prog = 0.5
         mx = bar_x + int(bar_w * mid_prog)
         pygame.draw.rect(surf, (255, 200, 50),

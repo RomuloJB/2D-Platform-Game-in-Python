@@ -127,14 +127,8 @@ class Enemy(Character):
             self.position.x += self.velocity.x * dt
             self.sync_rect()
 
-        # Patrulha: vira ao chegar na borda da plataforma.
-        # So inverte se estiver indo EM DIRECAO a borda (evita re-inverter todo
-        # frame quando o inimigo fica preso na zona de borda), e reposiciona o
-        # inimigo para dentro dos limites (clamp) para nunca ficar "flicando".
         min_x = self.plat.left
         max_x = self.plat.right - self.rect.w
-        # margem minima de patrulha; abaixo disso, nao vale a pena andar (e e
-        # onde o flicker aparece). Centraliza e fica parado.
         if max_x - min_x < 4:
             self.rect.x = (self.plat.left + self.plat.right) // 2 - self.rect.w // 2
             self.velocity.x = 0
@@ -144,7 +138,6 @@ class Enemy(Character):
                 self.velocity.x *= -1
             elif self.rect.right >= self.plat.right and self.velocity.x > 0:
                 self.velocity.x *= -1
-            # mantem o inimigo dentro da plataforma
             if self.rect.x < min_x:
                 self.rect.x = min_x
                 self.sync_position()

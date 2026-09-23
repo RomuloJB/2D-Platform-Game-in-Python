@@ -18,11 +18,8 @@ import pygame
 
 from src.utilz.Constants import SCREEN_W, SCREEN_H
 
-# Fator de parallax: 0 = totalmente travado na tela; 1 = anda junto com o mundo.
-# Valores baixos dao a sensacao de "fundo distante".
 _PARALLAX = 0.3
 
-# Cache: path -> Surface ja escalada para a altura da tela (ou None se falhou).
 _cache = {}
 
 
@@ -31,7 +28,7 @@ def _get_scaled(path):
         return _cache[path]
     surf = None
     try:
-        img = pygame.image.load(path).convert()      # sem alpha: e fundo opaco
+        img = pygame.image.load(path).convert()
         w, h = img.get_size()
         scale = SCREEN_H / h
         new_w = max(1, int(w * scale))
@@ -52,10 +49,8 @@ def draw_image_background(surf, cam_x, path):
 
     img_w = img.get_width()
 
-    # deslocamento com parallax; modulo para repetir sem fim
     offset = int(cam_x * _PARALLAX) % img_w
 
-    # desenha copias suficientes para cobrir a tela toda
     x = -offset
     while x < SCREEN_W:
         surf.blit(img, (x, 0))

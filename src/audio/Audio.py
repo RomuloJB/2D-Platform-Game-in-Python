@@ -21,7 +21,6 @@ import pygame
 
 
 class AudioManager:
-    # nome logico -> caminho do arquivo de SFX
     SFX_FILES = {
         "shot": os.path.join("res", "audio", "sfx", "shot.wav"),
     }
@@ -50,7 +49,6 @@ class AudioManager:
             except Exception:
                 pass
 
-    # ── SFX ─────────────────────────────────────────────────────
     def play_sfx(self, name: str, volume: float = 2.5) -> None:
         if not self.enabled:
             return
@@ -63,7 +61,6 @@ class AudioManager:
         except Exception:
             pass
 
-    # ── Musica de fundo ────────────────────────────────────────
     def play_music(self, path: str, volume: float = 0.3, loop: bool = True) -> None:
         """Toca uma musica em loop. Nao reinicia se ja for a musica atual."""
         if not self.enabled:

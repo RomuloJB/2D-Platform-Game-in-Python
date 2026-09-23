@@ -18,14 +18,9 @@ from src.utilz.Constants import (
     C_PLAYER_EY, C_PARTICLE, C_COIN,
 )
 
-# Aceleração horizontal: quantos px/s² de empurrão por frame (convertido para /s)
-# Original: vx chega em ~8 frames → PLAYER_SPEED / (8/60) ≈ 2250 px/s²
-_ACCEL = PLAYER_SPEED / (8 / 60)     # ~2250 px/s²
+_ACCEL = PLAYER_SPEED / (8 / 60)
 
-# Fator de atrito por segundo (0.75 por frame → 0.75^60 em 1 segundo,
-# mas isso freia demais; usamos 0.75^60 só quando sem input).
-# Na prática: multiplica velocidade por esse fator a cada segundo.
-_FRICTION_PER_SEC = pow(0.75, 60)    # ≈ 1.3e-6  (freia quase na hora)
+_FRICTION_PER_SEC = pow(0.75, 60)
 
 
 
@@ -99,7 +94,6 @@ class Player(Character):
         self.land_squash = 0.0
         self.shoot_anim = 0.0
 
-    # compat: __main__ antigo chama handle_input(keys); apply_input é o novo
     def apply_input(self, input_map: dict) -> None:
         self._want_left = input_map.get("left", False)
         self._want_right = input_map.get("right", False)
@@ -172,7 +166,6 @@ class Player(Character):
                 self.velocity.x = spd
             self.facing = 1
         else:
-            # atrito por dt: pow(0.75, dt*60) replica o 0.75/frame original
             self.velocity.x *= pow(0.75, dt * 60)
             if abs(self.velocity.x) < 10:
                 self.velocity.x = 0
@@ -183,7 +176,6 @@ class Player(Character):
         elif not self._jump_held:
             self.jump_hold = 0.0
 
-        # zera vy se estava no chão no frame anterior, para gravidade não acumular
         if self.was_on_ground:
             self.velocity.y = 0
         self.apply_gravity(dt)
@@ -192,8 +184,6 @@ class Player(Character):
 
         if self.was_on_ground and not self.on_ground:
             self.coyote = COYOTE_TIME
-        # if not self.was_on_ground and self.on_ground:
-        #     self.land_squash = 8 / 60
 
         self._try_jump()
 
